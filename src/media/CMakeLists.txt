@@ -1,5 +1,6 @@
 set(MTS_PLUGIN_PREFIX "media")
 
+add_plugin(atmosphere atmosphere.cpp)
 add_plugin(homogeneous homogeneous.cpp)
 add_plugin(heterogeneous heterogeneous.cpp)
 

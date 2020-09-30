@@ -74,3 +74,6 @@ mitsuba.conf
 # -DCMAKE_EXPORT_COMPILE_COMMANDS=1 is specified)
 compile_commands.json
 /.clangd
+
+.idea
+cmake-build-*

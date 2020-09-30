@@ -1,0 +1,71 @@
+<scene version="2.0.0">
+  <integrator type="path">
+    <!-- Instantiate a path tracer with a max. path length of 8 -->
+    <integer name="max_depth" value="8"/>
+  </integrator>
+
+  <!-- Instantiate a perspective camera with 45 degrees field of view -->
+  <sensor type="perspective">
+    <!-- Rotate the camera around the Y axis by 180 degrees -->
+    <transform name="to_world">
+      <rotate x="1" angle="90"/>
+      <rotate z="1" angle="45"/>
+      <translate x="-70.71" y="70.71" z="0"/>
+    </transform>
+    <float name="fov" value="15"/>
+
+    <!-- Render with 32 samples per pixel using a basic
+          independent sampling strategy -->
+    <sampler type="independent">
+      <integer name="sample_count" value="128"/>
+    </sampler>
+
+    <!-- Generate an EXR image at HD resolution -->
+    <film type="hdrfilm">
+      <integer name="width" value="1920"/>
+      <integer name="height" value="1080"/>
+    </film>
+  </sensor>
+  
+  <!-- Distance unit: 10^6 meters -->
+  
+  <!-- Sun -->
+  <shape type="sphere">
+    <float name="radius" value="696.340"/>
+    <point name="center" x="0" y="148432.926919" z="18633.0116798"/> <!-- Distance = 149597.870700 * 10^6 meters -->
+    
+    <emitter type="area">
+      <spectrum name="radiance" value="15400"/> <!-- 15400000 W per square metre per steradian -->
+    </emitter>
+  </shape>
+  
+  <!-- Earth -->
+  <shape type="sphere">
+    <float name="radius" value="6.371"/>
+    
+    <bsdf type="diffuse">
+      <texture type="bitmap" name="reflectance">
+        <string name="filename" value="earth.jpg"/>
+      </texture>
+    </bsdf>
+    
+    <medium type="atmosphere">
+      <!-- Parametres -->
+    </medium>
+  </shape>
+  
+  <!-- Earth atmosphere -- >
+  <shape type="sphere">
+    <float name="radius" value="20"/>
+    <point name="center" x="0" y="-50" z="0"/>
+    
+    <bsdf type="dielectric">
+      <float name="int_ior" value="1.00028"/>
+      <float name="ext_ior" value="1.0"/>
+    </bsdf>
+    
+    <medium type="atmosphere" name="interior">
+      <!-- Parametres -- >
+    </medium>
+  </shape>-->
+</scene>
