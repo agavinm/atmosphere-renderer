@@ -27,6 +27,8 @@
 
 NAMESPACE_BEGIN(mitsuba)
 
+#define LOG_MODE LogLevel::Info
+
 template <typename Float, typename Spectrum>
 class AtmosphereMedium final : public Medium<Float, Spectrum> {
 public:
@@ -34,7 +36,7 @@ public:
     MTS_IMPORT_TYPES(Volume)
 
     AtmosphereMedium(const Properties &props) : Base(props), m_lat(45.), m_up(0.,1.,0.), m_date(100),
-                                                m_earth_radius(6356.766), m_earth_albedo(0.7), m_earth_emission(0.) {
+                                                m_earth_albedo(0.7), m_earth_emission(0.) {
         m_D = props.int_("D", 3);
         if(m_D>3 || m_D<2)
             throw("Invalid dimension D for 'AtmosphereMedium'");
@@ -68,7 +70,15 @@ public:
 
         //m_max_density = m_scale * m_sigmat->max();
         m_aabb        = m_sigmat->bbox();
+        std::ostringstream oss;
+        oss << m_aabb;
+        Log(LOG_MODE, "Initialized Bounding Box as \"%s\"", oss.str());
 
+        m_earth_radius = props.float_("earth_radius_km");
+        Log(LOG_MODE, "Initialized Earth with \"%s\" radius.", std::to_string(m_earth_radius));
+
+        m_earth_scale = Float(6356.766) / m_earth_radius;
+        Log(LOG_MODE, "Initialized Earth scale as \"%s\".", std::to_string(m_earth_scale));
 
         // init
         init();
@@ -117,7 +127,7 @@ public:
                                 Mask active) const override {
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
         auto sigmat = m_scale * m_sigmat->eval(mi, active);
-        auto sigmas = sigmat * get_albedo(mi.p, mi.wavelengths[0]); // mi.wavelengths is Color<Float, 1>
+        auto sigmas = sigmat * get_albedo(mi.to_local(mi.p), mi.wavelengths[0]); // mi.wavelengths is Color<Float, 1> TODO: Sure??
         auto sigman = get_combined_extinction(mi, active) - sigmat;
         return { sigmas, sigman, sigmat };
     }
@@ -144,19 +154,27 @@ public:
         return oss.str();
     }
 
-    Float get_height(const Vector3f &p) const
-    {
-
-        Float earth_radious = 6356.766;
-        Vector3f earth_center(0, -earth_radious, 0);
-        Float l = (earth_center - p).Size; // TODO Size correcto??
-        return (l - earth_radious);
-
+    /**
+     * Computes the geopotential height of a point p given in local coordinates.
+     * @param p
+     * @return
+     */
+    Float get_height(const Vector3f &p) const {
+        Vector3f earth_center(0, -m_earth_radius, 0);
+        Float l = norm(earth_center - p);
+        Log(LOG_MODE, "Pre-Height of ray collision from the earth center \"%s\".", std::to_string(l));
+        Float aux = (l - m_earth_radius) * m_earth_scale;
+        Log(LOG_MODE, "Height of ray collision from the earth center \"%s\" km.", std::to_string(aux));
+        return aux;
+        //return (l - m_earth_radius);
     }
 
-    // Computes the latitude (in degrees) of a point p (in Km) given in local coordinates.
-    Float get_latitude(const Vector3f &p) const
-    {
+    /**
+     * Computes the latitude (in degrees) of a point p given in local coordinates.
+     * @param p
+     * @return
+     */
+    Float get_latitude(const Vector3f &p) const {
         Vector3f pw;
         if (m_D == 3)
             pw = (dot(p, m_hw), dot(p, m_uw), p[2]);
@@ -168,8 +186,14 @@ public:
         return acosf(dot(Vector3f(1., 0., 0), normalize(pw)))*M_1_PI*180.; // TODO Vector2f ??
     }
 
+    /**
+     * If this distance between center of the Earth and position of the ray is
+     * less than earth_radius+athmosphere_size, ray is inside of medium.
+     * Otherwise, not.
+     * @param p
+     * @return
+     */
     bool is_out_of_medium(const Vector3f &p) const {
-
         Float height = get_height(p);
 
         if (!(height >= 0 && height <= 86))
@@ -257,6 +281,7 @@ private:
 
     // Earth description
     Float m_earth_radius; // In kilometers
+    Float m_earth_scale; // From 0 to 1 (where 1 is real radius = m_earth_radius)
     Spectrum m_earth_albedo;
     Spectrum m_earth_emission;
 
