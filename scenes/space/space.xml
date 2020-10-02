@@ -1,7 +1,7 @@
 <scene version="2.0.0">
-  <integrator type="path">
+  <integrator type="volpath">
     <!-- Instantiate a path tracer with a max. path length of 8 -->
-    <integer name="max_depth" value="8"/>
+    <integer name="max_depth" value="128"/>
   </integrator>
 
   <!-- Instantiate a perspective camera with 45 degrees field of view -->
@@ -35,7 +35,7 @@
     <point name="center" x="0" y="148432.926919" z="18633.0116798"/> <!-- Distance = 149597.870700 * 10^6 meters -->
     
     <emitter type="area">
-      <spectrum name="radiance" value="15400"/> <!-- 15400000 W per square metre per steradian -->
+      <spectrum name="radiance" value="154000"/> <!-- 15400000 W per square metre per steradian -->
     </emitter>
   </shape>
   
@@ -49,23 +49,29 @@
       </texture>
     </bsdf>
     
-    <medium type="atmosphere">
-      <!-- Parametres -->
-    </medium>
+    <!--<medium type="atmosphere">
+      <!- - Parametres - ->
+      <float name="earth_radius_km" value="6.371"/>
+      <point name="earth_center" x="0" y="0" z="0"/>
+    </medium>-->
   </shape>
   
-  <!-- Earth atmosphere -- >
+  <!-- Earth atmosphere -->
   <shape type="sphere">
-    <float name="radius" value="20"/>
-    <point name="center" x="0" y="-50" z="0"/>
+    <float name="radius" value="6.53136"/>
+    <point name="center" x="0" y="0" z="0"/>
     
-    <bsdf type="dielectric">
+    <!--<bsdf type="dielectric">
       <float name="int_ior" value="1.00028"/>
       <float name="ext_ior" value="1.0"/>
-    </bsdf>
+    </bsdf>-->
+    
+    <bsdf type="null"/>
     
     <medium type="atmosphere" name="interior">
-      <!-- Parametres -- >
+      <!-- Parametres -->
+      <float name="earth_radius_km" value="6.371"/>
+      <point name="earth_center" x="0" y="0" z="0"/>
     </medium>
-  </shape>-->
+  </shape>
 </scene>

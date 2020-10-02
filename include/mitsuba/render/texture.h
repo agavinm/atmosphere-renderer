@@ -218,6 +218,8 @@ public:
     /// Evaluate the texture at the given surface interaction, with color processing.
     virtual UnpolarizedSpectrum eval(const Interaction3f &si, Mask active = true) const;
 
+    virtual UnpolarizedSpectrum eval(const Spectrum &s) const; // TODO: Correcto??
+
     /// Evaluate this texture as a single-channel quantity.
     virtual Float eval_1(const Interaction3f &si, Mask active = true) const;
 

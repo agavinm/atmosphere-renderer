@@ -69,7 +69,7 @@ public:
                     const SurfaceInteraction3f &si, Mask active) const;
 
     /// Return the phase function of this medium
-    MTS_INLINE const PhaseFunction *phase_function(const MediumInteraction3f &mi = nullptr) const { // TODO
+    MTS_INLINE const PhaseFunction *phase_function(/*const MediumInteraction3f &mi = nullptr (nullptr error)*/) const { // TODO
         //if (mi == nullptr) {
             return m_phase_function.get();
         /*}

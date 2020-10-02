@@ -63,22 +63,29 @@ public:
 
 
         m_is_homogeneous = false;
+        m_albedo = props.volume<Volume>("albedo", 0.75f);
         m_sigmat = props.volume<Volume>("sigma_t", 1.f);
+        Log(LOG_MODE, "Sigma_t bbox: \"%s\"", m_sigmat.get());
 
         m_scale = props.float_("scale", 1.0f);
         m_has_spectral_extinction = props.bool_("has_spectral_extinction", true);
 
         //m_max_density = m_scale * m_sigmat->max();
-        m_aabb        = m_sigmat->bbox();
-        std::ostringstream oss;
-        oss << m_aabb;
-        Log(LOG_MODE, "Initialized Bounding Box as \"%s\"", oss.str());
+        //m_aabb        = m_sigmat->bbox();
 
         m_earth_radius = props.float_("earth_radius_km");
         Log(LOG_MODE, "Initialized Earth with \"%s\" radius.", std::to_string(m_earth_radius));
 
         m_earth_scale = Float(6356.766) / m_earth_radius;
         Log(LOG_MODE, "Initialized Earth scale as \"%s\".", std::to_string(m_earth_scale));
+
+        const Point3f earth_center = props.point3f("earth_center");
+        const Float box_radius = m_earth_radius + 160.0f / m_earth_scale;
+        m_aabb = ScalarBoundingBox3f(Point3f(earth_center.x() - box_radius, earth_center.y() - box_radius, earth_center.z() - box_radius),
+                                     Point3f(earth_center.x() + box_radius, earth_center.y() + box_radius, earth_center.z() + box_radius));
+        std::ostringstream oss;
+        oss << m_aabb;
+        Log(LOG_MODE, "Initialized Bounding Box as \"%s\"", oss.str());
 
         // init
         init();
@@ -127,7 +134,8 @@ public:
                                 Mask active) const override {
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
         auto sigmat = m_scale * m_sigmat->eval(mi, active);
-        auto sigmas = sigmat * get_albedo(mi.to_local(mi.p), mi.wavelengths[0]); // mi.wavelengths is Color<Float, 1> TODO: Sure??
+        auto sigmas = sigmat * m_albedo->eval(get_albedo(mi.to_local(mi.p), mi.wavelengths[0])); // mi.wavelengths is Color<Float, 1> TODO: Sure??
+        Log(LOG_MODE, "Scattering albedo: \"%s\"", m_albedo);
         auto sigman = get_combined_extinction(mi, active) - sigmat;
         return { sigmas, sigman, sigmat };
     }
@@ -139,15 +147,16 @@ public:
 
     void traverse(TraversalCallback *callback) override {
         callback->put_parameter("scale", m_scale);
-        //callback->put_object("albedo", m_albedo.get());
+        callback->put_object("albedo", m_albedo.get());
         callback->put_object("sigma_t", m_sigmat.get());
+        Log(LOG_MODE, "Traverse albedo: \"%s\"", m_albedo.get());
         Base::traverse(callback);
     }
 
     std::string to_string() const override {
         std::ostringstream oss;
         oss << "AtmosphereMedium[" << std::endl
-            //<< "  albedo  = " << string::indent(m_albedo) << std::endl
+            << "  albedo  = " << string::indent(m_albedo) << std::endl
             << "  sigma_t = " << string::indent(m_sigmat) << std::endl
             << "  scale   = " << string::indent(m_scale) << std::endl
             << "]";
@@ -251,7 +260,7 @@ public:
 
     MTS_DECLARE_CLASS()
 private:
-    ref<Volume> m_sigmat;
+    ref<Volume> m_sigmat, m_albedo;
     ScalarFloat m_scale;
 
     ScalarBoundingBox3f m_aabb;
