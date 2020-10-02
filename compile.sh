@@ -8,4 +8,3 @@ cmake -GNinja ..
 ninja
 cd ..
 source setpath.sh
-echo "$: mitsuba scenes/space/space.xml"
