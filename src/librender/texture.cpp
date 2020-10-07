@@ -96,11 +96,6 @@ Volume<Float, Spectrum>::eval(const Interaction3f &, Mask) const {
     NotImplementedError("eval");
 }
 
-MTS_VARIANT typename Volume<Float, Spectrum>::UnpolarizedSpectrum
-Volume<Float, Spectrum>::eval(const Spectrum &s) const {
-    return s; // TODO: Correcto??
-}
-
 MTS_VARIANT Float Volume<Float, Spectrum>::eval_1(const Interaction3f &, Mask) const {
     NotImplementedError("eval_1");
 }

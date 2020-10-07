@@ -27,7 +27,7 @@
 
 NAMESPACE_BEGIN(mitsuba)
 
-#define LOG_MODE LogLevel::Info
+#define LOG_MODE LogLevel::Debug
 
 template <typename Float, typename Spectrum>
 class AtmosphereMedium final : public Medium<Float, Spectrum> {
@@ -63,7 +63,7 @@ public:
 
 
         m_is_homogeneous = false;
-        m_albedo = props.volume<Volume>("albedo", 0.75f);
+        //m_albedo = props.volume<Volume>("albedo", 0.75f);
         m_sigmat = props.volume<Volume>("sigma_t", 1.f);
         Log(LOG_MODE, "Sigma_t bbox: \"%s\"", m_sigmat.get());
 
@@ -79,10 +79,10 @@ public:
         m_earth_scale = Float(6356.766) / m_earth_radius;
         Log(LOG_MODE, "Initialized Earth scale as \"%s\".", std::to_string(m_earth_scale));
 
-        const Point3f earth_center = props.point3f("earth_center");
+        m_earth_center = props.point3f("earth_center");
         const Float box_radius = m_earth_radius + 160.0f / m_earth_scale;
-        m_aabb = ScalarBoundingBox3f(Point3f(earth_center.x() - box_radius, earth_center.y() - box_radius, earth_center.z() - box_radius),
-                                     Point3f(earth_center.x() + box_radius, earth_center.y() + box_radius, earth_center.z() + box_radius));
+        m_aabb = ScalarBoundingBox3f(Point3f(m_earth_center.x() - box_radius, m_earth_center.y() - box_radius, m_earth_center.z() - box_radius),
+                                     Point3f(m_earth_center.x() + box_radius, m_earth_center.y() + box_radius, m_earth_center.z() + box_radius));
         std::ostringstream oss;
         oss << m_aabb;
         Log(LOG_MODE, "Initialized Bounding Box as \"%s\"", oss.str());
@@ -122,11 +122,11 @@ public:
     }*/
 
     UnpolarizedSpectrum
-    get_combined_extinction(const MediumInteraction3f & /* mi */,
+    get_combined_extinction(const MediumInteraction3f &mi,
                             Mask active) const override {
         // TODO: This could be a spectral quantity (at least in RGB mode)
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
-        return m_max_density;
+        return m_sigmat->eval(mi) * m_scale;
     }
 
     std::tuple<UnpolarizedSpectrum, UnpolarizedSpectrum, UnpolarizedSpectrum>
@@ -134,8 +134,7 @@ public:
                                 Mask active) const override {
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
         auto sigmat = m_scale * m_sigmat->eval(mi, active);
-        auto sigmas = sigmat * m_albedo->eval(get_albedo(mi.to_local(mi.p), mi.wavelengths[0])); // mi.wavelengths is Color<Float, 1> TODO: Sure??
-        Log(LOG_MODE, "Scattering albedo: \"%s\"", m_albedo);
+        auto sigmas = sigmat * get_albedo(mi.p, mi.wavelengths[0]); // TODO: 0 is first wavelength, select the correct wavelength
         auto sigman = get_combined_extinction(mi, active) - sigmat;
         return { sigmas, sigman, sigmat };
     }
@@ -147,16 +146,15 @@ public:
 
     void traverse(TraversalCallback *callback) override {
         callback->put_parameter("scale", m_scale);
-        callback->put_object("albedo", m_albedo.get());
+        //callback->put_object("albedo", m_albedo.get());
         callback->put_object("sigma_t", m_sigmat.get());
-        Log(LOG_MODE, "Traverse albedo: \"%s\"", m_albedo.get());
         Base::traverse(callback);
     }
 
     std::string to_string() const override {
         std::ostringstream oss;
         oss << "AtmosphereMedium[" << std::endl
-            << "  albedo  = " << string::indent(m_albedo) << std::endl
+            //<< "  albedo  = " << string::indent(m_albedo) << std::endl
             << "  sigma_t = " << string::indent(m_sigmat) << std::endl
             << "  scale   = " << string::indent(m_scale) << std::endl
             << "]";
@@ -164,15 +162,15 @@ public:
     }
 
     /**
-     * Computes the geopotential height of a point p given in local coordinates.
+     * Computes the geopotential height of a point p given in world coordinates.
      * @param p
      * @return
      */
     Float get_height(const Vector3f &p) const {
-        Vector3f earth_center(0, -m_earth_radius, 0);
-        Float l = norm(earth_center - p);
-        Log(LOG_MODE, "Pre-Height of ray collision from the earth center \"%s\".", std::to_string(l));
+        Float l = norm(m_earth_center - Point3f(p));
         Float aux = (l - m_earth_radius) * m_earth_scale;
+        Log(LOG_MODE, "Vector p \"%s\"", p);
+        Log(LOG_MODE, "Pre-Height of ray collision from the earth center \"%s\".", std::to_string(l));
         Log(LOG_MODE, "Height of ray collision from the earth center \"%s\" km.", std::to_string(aux));
         return aux;
         //return (l - m_earth_radius);
@@ -218,7 +216,19 @@ public:
     }
 
     Spectrum get_albedo(const Vector3f &p, const int wl) const {
-        return get_scattering(p, wl) / get_extinction(p, wl);
+        Spectrum scattering = get_scattering(p, wl);
+        Log(LOG_MODE, "Scattering: \"%s\"", scattering);
+        Spectrum extinction = get_extinction(p, wl);
+        Log(LOG_MODE, "Extinction: \"%s\"", extinction);
+        Spectrum albedo = scattering / extinction;
+        for (auto &a : albedo) { // TODO: Why is nan or inf ??
+            if (isnan(a))
+                a = 0;
+            if (isinf(a))
+                a = 1;
+        }
+        Log(LOG_MODE, "Albedo: \"%s\"", albedo);
+        return albedo;
     }
 
     Spectrum get_absorption(const Vector3f &p, const int wl) const {
@@ -233,7 +243,9 @@ public:
 
     Spectrum get_rayleigh_scattering(const Vector3f &p, const int wl) const {
         Float h = get_height(p);
+        //Log(LOG_MODE, "Height of ray collision from the earth center \"%s\" km.", std::to_string(h));
         Float lat = get_latitude(p);
+        //Log(LOG_MODE, "Latitude of ray collision: \"%s\"", std::to_string(lat));
 
         Spectrum cross_section(0.);
 
@@ -260,11 +272,11 @@ public:
 
     MTS_DECLARE_CLASS()
 private:
-    ref<Volume> m_sigmat, m_albedo;
+    ref<Volume> m_sigmat;
     ScalarFloat m_scale;
 
     ScalarBoundingBox3f m_aabb;
-    ScalarFloat m_max_density;
+    //ScalarFloat m_max_density;
 
 
     int m_D;
@@ -289,6 +301,7 @@ private:
     int m_date; // In days, where 1 is Jan 1st, and 365 is Dec 31st (no leap year)
 
     // Earth description
+    Point3f m_earth_center;
     Float m_earth_radius; // In kilometers
     Float m_earth_scale; // From 0 to 1 (where 1 is real radius = m_earth_radius)
     Spectrum m_earth_albedo;
