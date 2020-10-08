@@ -79,10 +79,16 @@ public:
         m_earth_scale = Float(6356.766) / m_earth_radius;
         Log(LOG_MODE, "Initialized Earth scale as \"%s\".", std::to_string(m_earth_scale));
 
-        m_earth_center = props.point3f("earth_center");
+        Point3f earth_center = props.point3f("earth_center");
+        worldToLocal = Transform4f(Matrix4f(Point4f(1, 0, 0, 0),
+                                   Point4f(0, 1, 0, 0),
+                                   Point4f(0, 0, 1, 0),
+                                   Point4f(earth_center.x(), earth_center.y(), earth_center.z(), 1))).inverse();
+        Log(LOG_MODE, "Initialized worldToLocal transform as \"%s\"", worldToLocal);
+        
         const Float box_radius = m_earth_radius + 160.0f / m_earth_scale;
-        m_aabb = ScalarBoundingBox3f(Point3f(m_earth_center.x() - box_radius, m_earth_center.y() - box_radius, m_earth_center.z() - box_radius),
-                                     Point3f(m_earth_center.x() + box_radius, m_earth_center.y() + box_radius, m_earth_center.z() + box_radius));
+        m_aabb = ScalarBoundingBox3f(Point3f(earth_center.x() - box_radius, earth_center.y() - box_radius, earth_center.z() - box_radius),
+                                     Point3f(earth_center.x() + box_radius, earth_center.y() + box_radius, earth_center.z() + box_radius));
         std::ostringstream oss;
         oss << m_aabb;
         Log(LOG_MODE, "Initialized Bounding Box as \"%s\"", oss.str());
@@ -134,7 +140,8 @@ public:
                                 Mask active) const override {
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
         auto sigmat = m_scale * m_sigmat->eval(mi, active);
-        auto sigmas = sigmat * get_albedo(mi.p, mi.wavelengths[0]); // TODO: 0 is first wavelength, select the correct wavelength
+        Log(LOG_MODE, "World vector p \"%s\"", mi.p);
+        auto sigmas = sigmat * get_albedo(worldToLocal.transform_affine(mi.p), mi.wavelengths[0]); // TODO: 0 is first wavelength, select the correct wavelength
         auto sigman = get_combined_extinction(mi, active) - sigmat;
         return { sigmas, sigman, sigmat };
     }
@@ -162,12 +169,12 @@ public:
     }
 
     /**
-     * Computes the geopotential height of a point p given in world coordinates.
+     * Computes the geopotential height of a point p given in local coordinates.
      * @param p
      * @return
      */
     Float get_height(const Vector3f &p) const {
-        Float l = norm(m_earth_center - Point3f(p));
+        Float l = norm(p);
         Float aux = (l - m_earth_radius) * m_earth_scale;
         Log(LOG_MODE, "Vector p \"%s\"", p);
         Log(LOG_MODE, "Pre-Height of ray collision from the earth center \"%s\".", std::to_string(l));
@@ -301,11 +308,12 @@ private:
     int m_date; // In days, where 1 is Jan 1st, and 365 is Dec 31st (no leap year)
 
     // Earth description
-    Point3f m_earth_center;
     Float m_earth_radius; // In kilometers
     Float m_earth_scale; // From 0 to 1 (where 1 is real radius = m_earth_radius)
     Spectrum m_earth_albedo;
     Spectrum m_earth_emission;
+
+    Transform4f worldToLocal;
 
     // Aerosol description
     // Float m_T; // Turbicity
