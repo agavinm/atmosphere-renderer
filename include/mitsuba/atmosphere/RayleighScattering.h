@@ -34,9 +34,9 @@ namespace RayleighScattering {
 	};*/
 
 	//need to be done
-    template <typename Float, typename Spectrum>
-	inline Spectrum gamma(const int wl) {
-		return Spectrum(Utils::interpolate(std::vector<Float>(LambdaDependentValues<Float>[0], LambdaDependentValues<Float>[0] + 36), &LambdaDependentValues<Float>[3][0], wl));
+    template <typename Float>
+	inline Float gamma(const Float wl) {
+		return Utils::interpolate(std::vector<Float>(LambdaDependentValues<Float>[0], LambdaDependentValues<Float>[0] + 36), &LambdaDependentValues<Float>[3][0], wl);
 	};
 
 
