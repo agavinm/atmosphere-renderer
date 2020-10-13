@@ -2,7 +2,7 @@
 
 #include <memory>
 #include <mitsuba/atmosphere/Aerosol/BackgroundAerosol.h>
-/*#include <mitsuba/atmosphere/Aerosol/DesertDustAerosol.h>
+#include <mitsuba/atmosphere/Aerosol/DesertDustAerosol.h>
 #include <mitsuba/atmosphere/Aerosol/MaritimeCleanAerosol.h>
 #include <mitsuba/atmosphere/Aerosol/MaritimeMineralAerosol.h>
 #include <mitsuba/atmosphere/Aerosol/PolarAntarticAerosol.h>
@@ -10,7 +10,7 @@
 #include <mitsuba/atmosphere/Aerosol/RemoteContinentalAerosol.h>
 #include <mitsuba/atmosphere/Aerosol/RuralAerosol.h>
 #include <mitsuba/atmosphere/Aerosol/UrbanAerosol.h>
-#include <mitsuba/atmosphere/GlobalAtmosphericAerosol.h>*/
+#include <mitsuba/atmosphere/GlobalAtmosphericAerosol.h>
 #include <mitsuba/atmosphere/RayleighScattering.h>
 #include <mitsuba/atmosphere/StandardAtmosphere.h>
 #include <mitsuba/core/class.h>
@@ -29,6 +29,9 @@ NAMESPACE_BEGIN(mitsuba)
 
 #define LOG_MODE LogLevel::Debug
 
+// Statistics
+static long long m_stat_nan = 0, m_stat_inf = 0, m_stat_normal = 0;
+
 template <typename Float, typename Spectrum>
 class AtmosphereMedium final : public Medium<Float, Spectrum> {
 public:
@@ -41,8 +44,10 @@ public:
         if(m_D>3 || m_D<2)
             throw("Invalid dimension D for 'AtmosphereMedium'");
 
-        /*std::string aerosolModel = props.string("aerosol_model", "BackgroundAerosol");
-        if (aerosolModel == "DesertDustAerosol")
+        std::string aerosolModel = props.string("aerosol_model", "");
+        if (aerosolModel == "BackgroundAerosol")
+            m_AerosolModel = std::make_shared<backgroundAerosol::BackgroundAerosol<Float, Spectrum>>();
+        else if (aerosolModel == "DesertDustAerosol")
             m_AerosolModel = std::make_shared<desertDustAerosol::DesertDustAerosol<Float, Spectrum>>();
         else if (aerosolModel == "MaritimeCleanAerosol")
             m_AerosolModel = std::make_shared<maritimeCleanAerosol::MaritimeCleanAerosol<Float, Spectrum>>();
@@ -58,9 +63,8 @@ public:
             m_AerosolModel = std::make_shared<ruralAerosol::RuralAerosol<Float, Spectrum>>();
         else if (aerosolModel == "UrbanAerosol")
             m_AerosolModel = std::make_shared<urbanAerosol::UrbanAerosol<Float, Spectrum>>();
-        else // BackgroundAerosol
-            m_AerosolModel = std::make_shared<backgroundAerosol::BackgroundAerosol<Float, Spectrum>>();*/
-
+        else
+            m_AerosolModel = nullptr;
 
         m_is_homogeneous = false;
         //m_albedo = props.volume<Volume>("albedo", 0.75f);
@@ -102,7 +106,7 @@ public:
 
     void init() {
         m_lat_rad = m_lat / 180.*M_PI;
-        m_uw = Vector3f(cos(m_lat_rad), sin(m_lat_rad), 0); // TODO Vector2f??
+        m_uw = Vector3f(cos(m_lat_rad), sin(m_lat_rad), 0);
         m_hw = Vector3f(-sin(m_lat_rad), cos(m_lat_rad), 0);
     }
 
@@ -193,11 +197,11 @@ public:
         if (m_D == 3)
             pw = (dot(p, m_hw), dot(p, m_uw), p[2]);
         else if (m_D == 2)
-            pw = Vector3f(dot(p, m_hw), dot(p, m_uw), 0); // TODO Vector2f ??
+            pw = Vector3f(dot(p, m_hw), dot(p, m_uw), 0);
 
-        pw += m_uw; //Check
+        pw += m_uw; //TODO Check
 
-        return acosf(dot(Vector3f(1., 0., 0), normalize(pw)))*M_1_PI*180.; // TODO Vector2f ??
+        return acos(dot(Vector3f(1, 0, 0), normalize(pw))) * Float(M_1_PI) * Float(180);
     }
 
     /**
@@ -210,7 +214,7 @@ public:
     bool is_out_of_medium(const Vector3f &p) const {
         Float height = get_height(p);
 
-        if (!(height >= 0 && height <= 86))
+        if (!(height >= Float(0) && height <= Float(86)))
             return true;
 
         return false;
@@ -229,23 +233,34 @@ public:
         Log(LOG_MODE, "Extinction: \"%s\"", extinction);
         Spectrum albedo = scattering / extinction;
         for (auto &a : albedo) { // TODO: Why is nan or inf ??
-            if (isnan(a))
+            if (isnan(a)) {
                 a = 0;
-            if (isinf(a))
+                m_stat_nan++;
+            }
+            else if (isinf(a)) {
                 a = 1;
+                m_stat_inf++;
+            }
+            else {
+                m_stat_normal++;
+            }
         }
         Log(LOG_MODE, "Albedo: \"%s\"", albedo);
         return albedo;
     }
 
     Spectrum get_absorption(const Vector3f &p, const int wl) const {
-        //return Spectrum(0.);
-        return get_ozone_absorption(p, wl);// +get_aerosol_absorption(p, wl);
+        if (m_AerosolModel == nullptr)
+            return get_ozone_absorption(p, wl);
+        else
+            return get_ozone_absorption(p, wl) + get_aerosol_absorption(p, wl);
     }
 
     Spectrum get_scattering(const Vector3f &p, const int wl) const {
-        return get_rayleigh_scattering(p, wl);
-        //return  get_rayleigh_scattering(p, wl) +get_aerosol_scattering(p, wl);
+        if (m_AerosolModel == nullptr)
+            return get_rayleigh_scattering(p, wl);
+        else
+            return get_rayleigh_scattering(p, wl) + get_aerosol_scattering(p, wl);
     }
 
     Spectrum get_rayleigh_scattering(const Vector3f &p, const int wl) const {
@@ -277,6 +292,40 @@ public:
         //return Spectrum(0.);
     }
 
+
+    // ----------------------------------------------------------------------------
+    // Aerosols scattering and absorption functions
+    Spectrum get_aerosol_absorption(const Vector3f &p, const int wl) const {
+        Float h = get_height(p);
+        Spectrum cross_section(0.);
+
+        Float density = m_AerosolModel->get_density(h);
+
+        cross_section = m_AerosolModel->get_absorption(wl);
+        Spectrum final_result = cross_section * density;
+
+        return final_result;
+    }
+
+    Spectrum get_aerosol_scattering(const Vector3f &p, const int wl) const {
+        Float h = get_height(p);
+        Spectrum cross_section(0.);
+
+        Float density = m_AerosolModel->get_density(h);
+
+        cross_section = m_AerosolModel->get_scattering(wl);
+        Spectrum final_result = cross_section * density;
+
+        return final_result;
+    }
+
+    ~AtmosphereMedium() {
+        Float total = Float(100) / (m_stat_nan + m_stat_inf + m_stat_normal);
+        Log(Info, "Number of NaN in get_albedo(): \"%s\" (\"%s\"\"%\")", std::to_string(m_stat_nan), std::to_string(m_stat_nan * total));
+        Log(Info, "Number of Inf in get_albedo(): \"%s\" (\"%s\"\"%\")", std::to_string(m_stat_inf), std::to_string(m_stat_inf * total));
+        Log(Info, "Number of Normal in get_albedo(): \"%s\" (\"%s\"\"%\")", std::to_string(m_stat_normal), std::to_string(m_stat_normal * total));
+    }
+
     MTS_DECLARE_CLASS()
 private:
     ref<Volume> m_sigmat;
@@ -290,7 +339,7 @@ private:
     // Molecular description
     StandardAtmosphere::StandardAtmosphere<Float> m_standardAtmosphere;
     // Aerosol description
-    //std::shared_ptr<GlobalAerosolModel<Float, Spectrum>> m_AerosolModel; // TODO add
+    std::shared_ptr<GlobalAerosolModel<Float, Spectrum>> m_AerosolModel;
 
     // Sun description (probably useless)
     Float m_sun_phi, m_sun_thita;

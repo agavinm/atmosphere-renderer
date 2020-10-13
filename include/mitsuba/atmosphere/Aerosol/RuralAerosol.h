@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <mitsuba/atmosphere/GlobalAtmosphericAerosol.h>
+#include <mitsuba/atmosphere/Utils.h>
 
 namespace ruralAerosol {
 
@@ -30,20 +31,12 @@ namespace ruralAerosol {
         
         RuralAerosol() = default;
 
-		Spectrum get_absorption() const override {
-			return Spectrum(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), tabulatedValues<Float>[1]);
+		Spectrum get_absorption(const Float wl) const override {
+			return Spectrum(Utils::interpolate(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), tabulatedValues<Float>[1], wl));
 		}
 
-		Spectrum get_absorption(const int wl) const override {
-			return Spectrum(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), tabulatedValues<Float>[1], wl);
-		}
-
-		Spectrum get_scattering() const override {
-			return Spectrum(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), tabulatedValues<Float>[2]);
-		}
-
-		Spectrum get_scattering(const int wl) const override {
-			return Spectrum(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), tabulatedValues<Float>[2], wl);
+		Spectrum get_scattering(const Float wl) const override {
+			return Spectrum(Utils::interpolate(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), tabulatedValues<Float>[2], wl));
 		}
 
 		Float get_density(Float z) const override {

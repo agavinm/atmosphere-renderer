@@ -13,10 +13,8 @@ template <typename Float, typename Spectrum>
 class GlobalAerosolModel {
 public:
 
-	virtual Spectrum get_scattering() const = 0;
-	virtual Spectrum get_scattering(const int wl) const = 0;
-	virtual Spectrum get_absorption() const = 0;
-	virtual Spectrum get_absorption(const int wl) const = 0;
+	virtual Spectrum get_scattering(Float wl) const = 0;
+	virtual Spectrum get_absorption(Float wl) const = 0;
 	virtual Float get_density(Float z) const = 0;
 }; //GlobalAerosolModel
 
