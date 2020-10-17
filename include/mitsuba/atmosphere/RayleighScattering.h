@@ -108,56 +108,62 @@ namespace RayleighScattering {
 		return Spectrum(std::vector<Float>(ScatteringCrossSection<Float>[0], ScatteringCrossSection<Float>[0]+59),ScatteringCrossSection<Float>[2]);
 	}*/
 
-    template <typename Float, typename Spectrum>
-	Spectrum get_cross_section(const Float wl) {
+    template <typename Float, typename Spectrum, typename Wavelength>
+	Spectrum get_cross_section(const Wavelength &wl) {
 		// interpolates with one given value for wavelenght
-		return Spectrum(Utils::interpolate(std::vector<Float>(ScatteringCrossSection<Float>[0], ScatteringCrossSection<Float>[0] + 59), &ScatteringCrossSection<Float>[2][0], wl));
+        Spectrum s(0.);
+
+        for (int i = 0; i < wl.Size; i++)
+            s[i] = Utils::interpolate(std::vector<Float>(ScatteringCrossSection<Float>[0], ScatteringCrossSection<Float>[0] + 59), &ScatteringCrossSection<Float>[2][0], wl[i]);
+
+        return s;
 	}
 
-    template <typename Float, typename Spectrum>
-	Spectrum get_ozone_cross_section(const Float wl) {
-		if (wl < 244)
-			//NO DATA
-			return Spectrum();
+    template <typename Float, typename Spectrum, typename Wavelength>
+	Spectrum get_ozone_cross_section(const Wavelength &wl) {
+        Spectrum s(0.);
 
-		else if (wl >= 244 && wl <= 302)
-			// Ultraviolet
-			return Spectrum(Utils::interpolate(std::vector<Float>(ozoneUVcrossSection<Float>[0], ozoneUVcrossSection<Float>[0] + 7), &ozoneUVcrossSection<Float>[1][0], wl));
+        for (int i = 0; i < wl.Size; i++) {
+            if (wl[i] >= 244 && wl[i] <= 302)
+                // Ultraviolet
+                s[i] = Utils::interpolate(std::vector<Float>(ozoneUVcrossSection<Float>[0], ozoneUVcrossSection<Float>[0] + 7),
+                                          &ozoneUVcrossSection<Float>[1][0], wl[i]);
 
-		else if (wl > 302 && wl < 365)
-			// fast interpolate betweens ultraviolet and near ultraviolet
-			return Utils::fast_interpolate(ozoneUVcrossSection<Float>[0][7], ozoneNearCrossSection<Float>[0][0],
-				wl, ozoneUVcrossSection<Float>[1][7], ozoneNearCrossSection<Float>[1][0]);
+            else if (wl[i] > 302 && wl[i] < 365)
+                // fast interpolate betweens ultraviolet and near ultraviolet
+                s[i] = Utils::fast_interpolate(ozoneUVcrossSection<Float>[0][6], ozoneNearCrossSection<Float>[0][0], wl[i],
+                                               ozoneUVcrossSection<Float>[1][6], ozoneNearCrossSection<Float>[1][0]);
 
-		else if (wl >= 365 && wl <= 455)
-			//near ultraviolet
-			return Spectrum(Utils::interpolate(std::vector<Float>(ozoneNearCrossSection<Float>[0], ozoneNearCrossSection<Float>[0] + 3), &ozoneNearCrossSection<Float>[1][0], wl));
+            else if (wl[i] >= 365 && wl[i] <= 455)
+                //near ultraviolet
+                s[i] = Utils::interpolate(std::vector<Float>(ozoneNearCrossSection<Float>[0], ozoneNearCrossSection<Float>[0] + 3),
+                                          &ozoneNearCrossSection<Float>[1][0], wl[i]);
 
-		else if (wl > 455 && wl < 543) {
-			// fast interpolate betweens near ultraviolet and visible
-			return Utils::fast_interpolate(ozoneNearCrossSection<Float>[0][2], ozoneVisibleCrossSection<Float>[0][0],
-				wl, ozoneNearCrossSection<Float>[1][2], ozoneVisibleCrossSection<Float>[1][0]);
-		}
+            else if (wl[i] > 455 && wl[i] < 543)
+                // fast interpolate betweens near ultraviolet and visible
+                s[i] = Utils::fast_interpolate(ozoneNearCrossSection<Float>[0][2], ozoneVisibleCrossSection<Float>[0][0], wl[i],
+                                               ozoneNearCrossSection<Float>[1][2], ozoneVisibleCrossSection<Float>[1][0]);
 
-		else if (wl >= 543 && wl <= 632)
-			// Visible spectrum
-			return Spectrum(Utils::interpolate(std::vector<Float>(ozoneVisibleCrossSection<Float>[0], ozoneVisibleCrossSection<Float>[0] + 6), &ozoneVisibleCrossSection<Float>[1][0], wl));
+            else if (wl[i] >= 543 && wl[i] <= 632)
+                // Visible spectrum
+                s[i] = Utils::interpolate(std::vector<Float>(ozoneVisibleCrossSection<Float>[0], ozoneVisibleCrossSection<Float>[0] + 6),
+                                          &ozoneVisibleCrossSection<Float>[1][0], wl[i]);
 
-		else if (wl > 632 && wl < 748)
-			// fast interpolate betweens near ultraviolet and visible
-			return Utils::fast_interpolate(ozoneVisibleCrossSection<Float>[0][5], ozoneNIRCrossSection<Float>[0][0],
-				wl, ozoneVisibleCrossSection<Float>[1][5], ozoneNIRCrossSection<Float>[1][0]);
+            else if (wl[i] > 632 && wl[i] < 748)
+                // fast interpolate betweens near ultraviolet and visible
+                s[i] = Utils::fast_interpolate(ozoneVisibleCrossSection<Float>[0][5], ozoneNIRCrossSection<Float>[0][0], wl[i],
+                                               ozoneVisibleCrossSection<Float>[1][5], ozoneNIRCrossSection<Float>[1][0]);
 
-		else if(wl>=748 && wl<= 1046)
-			//Near infrared
-			return Spectrum(Utils::interpolate(std::vector<Float>(ozoneNIRCrossSection<Float>[0], ozoneNIRCrossSection<Float>[0] + 16), &ozoneNIRCrossSection<Float>[1][0], wl));
-		else
-			//NO DATA
-			return Spectrum();
+            else if (wl[i] >= 748 && wl[i] <= 1046)
+                //Near infrared
+                s[i] = Utils::interpolate(std::vector<Float>(ozoneNIRCrossSection<Float>[0], ozoneNIRCrossSection<Float>[0] + 16),
+                                          &ozoneNIRCrossSection<Float>[1][0], wl[i]);
+        }
+
+        return s;
 	}
 
 	
 
 }; //RayleighScattering
-
 #endif //_RAYLEIGH_SCATTERING_H_

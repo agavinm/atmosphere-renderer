@@ -136,17 +136,36 @@ public:
                             Mask active) const override {
         // TODO: This could be a spectral quantity (at least in RGB mode)
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
-        return m_sigmat->eval(mi) * m_scale;
+        return m_sigmat->eval(mi) * m_scale; // TODO: sigma_t is not the correct one !!
+        //return get_extinction(worldToLocal.transform_affine(mi.p), mi.wavelengths);
     }
 
     std::tuple<UnpolarizedSpectrum, UnpolarizedSpectrum, UnpolarizedSpectrum>
     get_scattering_coefficients(const MediumInteraction3f &mi,
                                 Mask active) const override {
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
-        auto sigmat = m_scale * m_sigmat->eval(mi, active);
+
+        /*for (const auto &a : mi.p) {
+            if (isinf(a) || isnan(a)) // TODO Why ??
+                Log(Info, "World vector p \"%s\"", mi.p);
+                //return { Spectrum(0.), Spectrum(0.), Spectrum(0.) };
+        }*/
         Log(LOG_MODE, "World vector p \"%s\"", mi.p);
-        auto sigmas = sigmat * get_albedo(worldToLocal.transform_affine(mi.p), mi.wavelengths[0]); // TODO: 0 is first wavelength, select the correct wavelength
-        auto sigman = get_combined_extinction(mi, active) - sigmat;
+
+        // After:
+        auto p = worldToLocal.transform_affine(mi.p);
+        auto sigmas = get_scattering(p, mi.wavelengths);
+        auto sigmat = Spectrum(0.); //get_extinction(p, mi.wavelengths);
+        if (!is_out_of_medium(p))
+            sigmat = get_absorption(p, mi.wavelengths) + sigmas;
+
+        //auto sigman = sigmat - sigmat;
+
+        // Before:
+        //auto sigmat = m_scale * m_sigmat->eval(mi, active); // TODO: Use correct sigma_t
+        //auto sigmas = sigmat * get_albedo(worldToLocal.transform_affine(mi.p), mi.wavelengths); // TODO: 0 is first wavelength, select the correct wavelength
+        auto sigman = get_combined_extinction(mi, active) - sigmat; // TODO: 0??
+
         return { sigmas, sigman, sigmat };
     }
 
@@ -156,9 +175,9 @@ public:
     }
 
     void traverse(TraversalCallback *callback) override {
-        callback->put_parameter("scale", m_scale);
+        //callback->put_parameter("scale", m_scale);
         //callback->put_object("albedo", m_albedo.get());
-        callback->put_object("sigma_t", m_sigmat.get());
+        //callback->put_object("sigma_t", m_sigmat.get());
         Base::traverse(callback);
     }
 
@@ -166,8 +185,8 @@ public:
         std::ostringstream oss;
         oss << "AtmosphereMedium[" << std::endl
             //<< "  albedo  = " << string::indent(m_albedo) << std::endl
-            << "  sigma_t = " << string::indent(m_sigmat) << std::endl
-            << "  scale   = " << string::indent(m_scale) << std::endl
+            //<< "  sigma_t = " << string::indent(m_sigmat) << std::endl
+            //<< "  scale   = " << string::indent(m_scale) << std::endl
             << "]";
         return oss.str();
     }
@@ -179,11 +198,11 @@ public:
      */
     Float get_height(const Vector3f &p) const {
         Float l = norm(p);
-        Float aux = (l - m_earth_radius) * m_earth_scale;
+        Float height = (l - m_earth_radius) * m_earth_scale;
         Log(LOG_MODE, "Vector p \"%s\"", p);
         Log(LOG_MODE, "Pre-Height of ray collision from the earth center \"%s\".", std::to_string(l));
-        Log(LOG_MODE, "Height of ray collision from the earth center \"%s\" km.", std::to_string(aux));
-        return aux;
+        Log(LOG_MODE, "Height of ray collision from the earth center \"%s\" km.", std::to_string(height));
+        return height;
         //return (l - m_earth_radius);
     }
 
@@ -220,50 +239,57 @@ public:
         return false;
     }
 
-    Spectrum get_extinction(const Vector3f &p, const int wl) const {
+    Spectrum get_extinction(const Vector3f &p, const Wavelength &wl) const {
         if (is_out_of_medium(p))
             return Spectrum(0.);
         return get_absorption(p, wl) + get_scattering(p, wl);
     }
 
-    Spectrum get_albedo(const Vector3f &p, const int wl) const {
-        Spectrum scattering = get_scattering(p, wl);
-        Log(LOG_MODE, "Scattering: \"%s\"", scattering);
+    Spectrum get_albedo(const Vector3f &p, const Wavelength &wl) const {
+        if (is_out_of_medium(p))
+            return Spectrum(0.); // TODO: Is it correct?
+
+        /*Spectrum scattering = get_scattering(p, wl);
         Spectrum extinction = get_extinction(p, wl);
-        Log(LOG_MODE, "Extinction: \"%s\"", extinction);
         Spectrum albedo = scattering / extinction;
         for (auto &a : albedo) { // TODO: Why is nan or inf ??
-            if (isnan(a)) {
+            if (isnan(a)) { // Because Extinction == Scattering == 0
                 a = 0;
                 m_stat_nan++;
+                Log(Info, "[albedo = NaN] Scattering: \"%s\"", scattering);
+                Log(Info, "[albedo = NaN] Extinction: \"%s\"", extinction);
             }
-            else if (isinf(a)) {
+            else if (isinf(a)) { // Because Extinction == 0 and Scattering != 0
                 a = 1;
                 m_stat_inf++;
+                Log(Info, "[albedo = Inf] Scattering: \"%s\"", scattering);
+                Log(Info, "[albedo = Inf] Extinction: \"%s\"", extinction);
             }
             else {
                 m_stat_normal++;
             }
         }
         Log(LOG_MODE, "Albedo: \"%s\"", albedo);
-        return albedo;
+        return albedo;*/
+
+        return get_scattering(p, wl) / get_extinction(p, wl);
     }
 
-    Spectrum get_absorption(const Vector3f &p, const int wl) const {
-        if (m_AerosolModel == nullptr)
+    Spectrum get_absorption(const Vector3f &p, const Wavelength &wl) const {
+        //if (m_AerosolModel == nullptr)
             return get_ozone_absorption(p, wl);
-        else
-            return get_ozone_absorption(p, wl) + get_aerosol_absorption(p, wl);
+        /*else
+            return get_ozone_absorption(p, wl) + get_aerosol_absorption(p, wl);*/
     }
 
-    Spectrum get_scattering(const Vector3f &p, const int wl) const {
-        if (m_AerosolModel == nullptr)
+    Spectrum get_scattering(const Vector3f &p, const Wavelength &wl) const {
+        //if (m_AerosolModel == nullptr)
             return get_rayleigh_scattering(p, wl);
-        else
-            return get_rayleigh_scattering(p, wl) + get_aerosol_scattering(p, wl);
+        /*else
+            return get_rayleigh_scattering(p, wl) + get_aerosol_scattering(p, wl);*/
     }
 
-    Spectrum get_rayleigh_scattering(const Vector3f &p, const int wl) const {
+    Spectrum get_rayleigh_scattering(const Vector3f &p, const Wavelength &wl) const {
         Float h = get_height(p);
         //Log(LOG_MODE, "Height of ray collision from the earth center \"%s\" km.", std::to_string(h));
         Float lat = get_latitude(p);
@@ -273,17 +299,17 @@ public:
 
         Float density = m_standardAtmosphere.get_number_density(h);
 
-        cross_section = RayleighScattering::get_cross_section<Float, Spectrum>(wl);
+        cross_section = RayleighScattering::get_cross_section<Float, Spectrum, Wavelength>(wl);
 
         Spectrum finalResult = density * cross_section;
 
         return finalResult*1e-1;
     }
 
-    Spectrum get_ozone_absorption(const Vector3f &p, const int wl, const int month = 1) const {
+    Spectrum get_ozone_absorption(const Vector3f &p, const Wavelength &wl, const int month = 1) const {
         Float h = get_height(p);
         Spectrum cross_section(0.);
-        cross_section = RayleighScattering::get_ozone_cross_section<Float, Spectrum>(wl);
+        cross_section = RayleighScattering::get_ozone_cross_section<Float, Spectrum, Wavelength>(wl);
         cross_section *= 1e-10;
         Float density = StandardAtmosphere::StandardAtmosphere<Float>::get_robson_ozone(h, 1);//  get_robson_ozone(h, 1);
         Spectrum result = density*cross_section;
@@ -319,12 +345,12 @@ public:
         return final_result;
     }
 
-    ~AtmosphereMedium() {
+    /*~AtmosphereMedium() {
         Float total = Float(100) / (m_stat_nan + m_stat_inf + m_stat_normal);
         Log(Info, "Number of NaN in get_albedo(): \"%s\" (\"%s\"\"%\")", std::to_string(m_stat_nan), std::to_string(m_stat_nan * total));
         Log(Info, "Number of Inf in get_albedo(): \"%s\" (\"%s\"\"%\")", std::to_string(m_stat_inf), std::to_string(m_stat_inf * total));
         Log(Info, "Number of Normal in get_albedo(): \"%s\" (\"%s\"\"%\")", std::to_string(m_stat_normal), std::to_string(m_stat_normal * total));
-    }
+    }*/
 
     MTS_DECLARE_CLASS()
 private:
