@@ -9,12 +9,14 @@
 //		http://www.spacewx.com/Docs/AIAA-656-598.pdf
 
 
-template <typename Float, typename Spectrum>
+template <typename Float, typename Spectrum, typename Wavelength>
 class GlobalAerosolModel {
 public:
 
-	virtual Spectrum get_scattering(Float wl) const = 0;
-	virtual Spectrum get_absorption(Float wl) const = 0;
+    virtual Spectrum get_scattering() const = 0;
+    virtual Spectrum get_scattering(const Wavelength &wl) const = 0;
+    virtual Spectrum get_absorption() const = 0;
+    virtual Spectrum get_absorption(const Wavelength &wl) const = 0;
 	virtual Float get_density(Float z) const = 0;
 }; //GlobalAerosolModel
 

@@ -46,32 +46,32 @@ public:
 
         std::string aerosolModel = props.string("aerosol_model", "");
         if (aerosolModel == "BackgroundAerosol")
-            m_AerosolModel = std::make_shared<backgroundAerosol::BackgroundAerosol<Float, Spectrum>>();
+            m_AerosolModel = std::make_shared<backgroundAerosol::BackgroundAerosol<Float, Spectrum, Wavelength>>();
         else if (aerosolModel == "DesertDustAerosol")
-            m_AerosolModel = std::make_shared<desertDustAerosol::DesertDustAerosol<Float, Spectrum>>();
+            m_AerosolModel = std::make_shared<desertDustAerosol::DesertDustAerosol<Float, Spectrum, Wavelength>>();
         else if (aerosolModel == "MaritimeCleanAerosol")
-            m_AerosolModel = std::make_shared<maritimeCleanAerosol::MaritimeCleanAerosol<Float, Spectrum>>();
+            m_AerosolModel = std::make_shared<maritimeCleanAerosol::MaritimeCleanAerosol<Float, Spectrum, Wavelength>>();
         else if (aerosolModel == "MaritimeMineralAerosol")
-            m_AerosolModel = std::make_shared<maritimeMineralAerosol::MaritimeMineralAerosol<Float, Spectrum>>();
+            m_AerosolModel = std::make_shared<maritimeMineralAerosol::MaritimeMineralAerosol<Float, Spectrum, Wavelength>>();
         else if (aerosolModel == "PolarAntarticAerosol")
-            m_AerosolModel = std::make_shared<polarAntarticAerosol::PolarAntarticAerosol<Float, Spectrum>>();
+            m_AerosolModel = std::make_shared<polarAntarticAerosol::PolarAntarticAerosol<Float, Spectrum, Wavelength>>();
         else if (aerosolModel == "PolarArticAerosol")
-            m_AerosolModel = std::make_shared<polarArticAerosol::PolarArticAerosol<Float, Spectrum>>();
+            m_AerosolModel = std::make_shared<polarArticAerosol::PolarArticAerosol<Float, Spectrum, Wavelength>>();
         else if (aerosolModel == "RemoteContinentalAerosol")
-            m_AerosolModel = std::make_shared<remoteContinentalAerosol::RemoteContinentalAerosol<Float, Spectrum>>();
+            m_AerosolModel = std::make_shared<remoteContinentalAerosol::RemoteContinentalAerosol<Float, Spectrum, Wavelength>>();
         else if (aerosolModel == "RuralAerosol")
-            m_AerosolModel = std::make_shared<ruralAerosol::RuralAerosol<Float, Spectrum>>();
+            m_AerosolModel = std::make_shared<ruralAerosol::RuralAerosol<Float, Spectrum, Wavelength>>();
         else if (aerosolModel == "UrbanAerosol")
-            m_AerosolModel = std::make_shared<urbanAerosol::UrbanAerosol<Float, Spectrum>>();
+            m_AerosolModel = std::make_shared<urbanAerosol::UrbanAerosol<Float, Spectrum, Wavelength>>();
         else
             m_AerosolModel = nullptr;
 
         m_is_homogeneous = false;
         //m_albedo = props.volume<Volume>("albedo", 0.75f);
-        m_sigmat = props.volume<Volume>("sigma_t", 1.f);
-        Log(LOG_MODE, "Sigma_t bbox: \"%s\"", m_sigmat.get());
+        //m_sigmat = props.volume<Volume>("sigma_t", 1.f);
+        //Log(LOG_MODE, "Sigma_t bbox: \"%s\"", m_sigmat.get());
 
-        m_scale = props.float_("scale", 1.0f);
+        //m_scale = props.float_("scale", 1.0f);
         m_has_spectral_extinction = props.bool_("has_spectral_extinction", true);
 
         //m_max_density = m_scale * m_sigmat->max();
@@ -98,46 +98,34 @@ public:
         Log(LOG_MODE, "Initialized Bounding Box as \"%s\"", oss.str());
 
         // init
-        init();
-
-        // Precompute values
-        //precompute_values(wl); // TODO wl ??
-    }
-
-    void init() {
         m_lat_rad = m_lat / 180.*M_PI;
         m_uw = Vector3f(cos(m_lat_rad), sin(m_lat_rad), 0);
         m_hw = Vector3f(-sin(m_lat_rad), cos(m_lat_rad), 0);
-    }
 
-    /*void precompute_values(const int wl) {
-        //m_max_extinction = get_extinction(Vector3(0, 65.0995790, 0));
+        // Precompute values
+        Vector3f p(0, m_earth_radius, 0);
+        Spectrum extinction = get_extinction(p, -1);
+        m_max_extinction = extinction[0];
 
-        Vector3f p(0, 0, 0);
-        Spectrum extinction;
-        m_max_extinction = get_extinction(p,wl);
-        Float max_height;
+        for (int i = 0; i < 8699; i++) {
+            p = p + Vector3f(0, Float(0.01) / m_earth_scale, 0);
 
-        for (int i = 0; i < 8700; i++) {
+            extinction = get_extinction(p, -1);
 
-            extinction = get_extinction(p,wl);
-
-            if (extinction.get_max() > m_max_extinction.get_max()) {
-                m_max_extinction = extinction;
-                max_height = p[1];
+            if (extinction[0] > m_max_extinction) {
+                m_max_extinction = extinction[0];
             }
-            p = p + Vector3f(0, 0.01, 0);
         }
 
-    }*/
+        Log(Info, "Max extinction = \"%s\"", m_max_extinction);
+    }
 
     UnpolarizedSpectrum
-    get_combined_extinction(const MediumInteraction3f &mi,
+    get_combined_extinction(const MediumInteraction3f & /* mi */,
                             Mask active) const override {
         // TODO: This could be a spectral quantity (at least in RGB mode)
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
-        return m_sigmat->eval(mi) * m_scale; // TODO: sigma_t is not the correct one !!
-        //return get_extinction(worldToLocal.transform_affine(mi.p), mi.wavelengths);
+        return m_max_extinction;
     }
 
     std::tuple<UnpolarizedSpectrum, UnpolarizedSpectrum, UnpolarizedSpectrum>
@@ -153,18 +141,22 @@ public:
         Log(LOG_MODE, "World vector p \"%s\"", mi.p);
 
         // After:
-        auto p = worldToLocal.transform_affine(mi.p);
-        auto sigmas = get_scattering(p, mi.wavelengths);
-        auto sigmat = Spectrum(0.); //get_extinction(p, mi.wavelengths);
-        if (!is_out_of_medium(p))
-            sigmat = get_absorption(p, mi.wavelengths) + sigmas;
+        UnpolarizedSpectrum sigmas = 0.f;
+        UnpolarizedSpectrum sigmat = 0.f;
+        //UnpolarizedSpectrum sigman = 0.f;
 
-        //auto sigman = sigmat - sigmat;
+        auto p = worldToLocal.transform_affine(mi.p);
+        if (!is_out_of_medium(p)) {
+            sigmas = get_scattering(p, mi.wavelengths);
+            sigmat = get_absorption(p, mi.wavelengths) + sigmas; //get_extinction(p, mi.wavelengths);
+        }
 
         // Before:
         //auto sigmat = m_scale * m_sigmat->eval(mi, active); // TODO: Use correct sigma_t
         //auto sigmas = sigmat * get_albedo(worldToLocal.transform_affine(mi.p), mi.wavelengths); // TODO: 0 is first wavelength, select the correct wavelength
-        auto sigman = get_combined_extinction(mi, active) - sigmat; // TODO: 0??
+        auto sigman = get_combined_extinction(mi, active) - sigmat;
+
+        //Log(Info, "Sigma_n \"%s\"", sigman);
 
         return { sigmas, sigman, sigmat };
     }
@@ -245,11 +237,11 @@ public:
         return get_absorption(p, wl) + get_scattering(p, wl);
     }
 
-    Spectrum get_albedo(const Vector3f &p, const Wavelength &wl) const {
+    /*Spectrum get_albedo(const Vector3f &p, const Wavelength &wl) const {
         if (is_out_of_medium(p))
             return Spectrum(0.); // TODO: Is it correct?
 
-        /*Spectrum scattering = get_scattering(p, wl);
+        Spectrum scattering = get_scattering(p, wl);
         Spectrum extinction = get_extinction(p, wl);
         Spectrum albedo = scattering / extinction;
         for (auto &a : albedo) { // TODO: Why is nan or inf ??
@@ -270,23 +262,23 @@ public:
             }
         }
         Log(LOG_MODE, "Albedo: \"%s\"", albedo);
-        return albedo;*/
+        return albedo;
 
         return get_scattering(p, wl) / get_extinction(p, wl);
-    }
+    }*/
 
     Spectrum get_absorption(const Vector3f &p, const Wavelength &wl) const {
-        //if (m_AerosolModel == nullptr)
+        if (m_AerosolModel == nullptr)
             return get_ozone_absorption(p, wl);
-        /*else
-            return get_ozone_absorption(p, wl) + get_aerosol_absorption(p, wl);*/
+        else
+            return get_ozone_absorption(p, wl) + get_aerosol_absorption(p, wl);
     }
 
     Spectrum get_scattering(const Vector3f &p, const Wavelength &wl) const {
-        //if (m_AerosolModel == nullptr)
+        if (m_AerosolModel == nullptr)
             return get_rayleigh_scattering(p, wl);
-        /*else
-            return get_rayleigh_scattering(p, wl) + get_aerosol_scattering(p, wl);*/
+        else
+            return get_rayleigh_scattering(p, wl) + get_aerosol_scattering(p, wl);
     }
 
     Spectrum get_rayleigh_scattering(const Vector3f &p, const Wavelength &wl) const {
@@ -299,9 +291,14 @@ public:
 
         Float density = m_standardAtmosphere.get_number_density(h);
 
-        cross_section = RayleighScattering::get_cross_section<Float, Spectrum, Wavelength>(wl);
+        if (wl == -1)
+            cross_section = RayleighScattering::get_cross_section<Float, Spectrum>();
+        else
+            cross_section = RayleighScattering::get_cross_section<Float, Spectrum, Wavelength>(wl);
 
         Spectrum finalResult = density * cross_section;
+
+        //Log(Info, "get_rayleigh_scattering = \"%s\"", finalResult);
 
         return finalResult*1e-1;
     }
@@ -313,6 +310,8 @@ public:
         cross_section *= 1e-10;
         Float density = StandardAtmosphere::StandardAtmosphere<Float>::get_robson_ozone(h, 1);//  get_robson_ozone(h, 1);
         Spectrum result = density*cross_section;
+
+        //Log(Info, "get_ozone_absorption = \"%s\"", result);
         return result;
 
         //return Spectrum(0.);
@@ -321,26 +320,38 @@ public:
 
     // ----------------------------------------------------------------------------
     // Aerosols scattering and absorption functions
-    Spectrum get_aerosol_absorption(const Vector3f &p, const int wl) const {
+    Spectrum get_aerosol_absorption(const Vector3f &p, const Wavelength &wl) const {
         Float h = get_height(p);
         Spectrum cross_section(0.);
 
         Float density = m_AerosolModel->get_density(h);
 
-        cross_section = m_AerosolModel->get_absorption(wl);
+        if (wl == -1)
+            cross_section = m_AerosolModel->get_absorption();
+        else
+            cross_section = m_AerosolModel->get_absorption(wl);
+
         Spectrum final_result = cross_section * density;
+
+        //Log(Info, "get_aerosol_absorption = \"%s\"", final_result);
 
         return final_result;
     }
 
-    Spectrum get_aerosol_scattering(const Vector3f &p, const int wl) const {
+    Spectrum get_aerosol_scattering(const Vector3f &p, const Wavelength &wl) const {
         Float h = get_height(p);
         Spectrum cross_section(0.);
 
         Float density = m_AerosolModel->get_density(h);
 
-        cross_section = m_AerosolModel->get_scattering(wl);
+        if (wl == -1)
+            cross_section = m_AerosolModel->get_scattering();
+        else
+            cross_section = m_AerosolModel->get_scattering(wl);
+
         Spectrum final_result = cross_section * density;
+
+        //Log(Info, "get_aerosol_scattering = \"%s\"", final_result);
 
         return final_result;
     }
@@ -354,8 +365,8 @@ public:
 
     MTS_DECLARE_CLASS()
 private:
-    ref<Volume> m_sigmat;
-    ScalarFloat m_scale;
+    //ref<Volume> m_sigmat;
+    //ScalarFloat m_scale;
 
     ScalarBoundingBox3f m_aabb;
     //ScalarFloat m_max_density;
@@ -365,7 +376,7 @@ private:
     // Molecular description
     StandardAtmosphere::StandardAtmosphere<Float> m_standardAtmosphere;
     // Aerosol description
-    std::shared_ptr<GlobalAerosolModel<Float, Spectrum>> m_AerosolModel;
+    std::shared_ptr<GlobalAerosolModel<Float, Spectrum, Wavelength>> m_AerosolModel;
 
     // Sun description (probably useless)
     Float m_sun_phi, m_sun_thita;
@@ -392,6 +403,9 @@ private:
 
     // Aerosol description
     // Float m_T; // Turbicity
+
+    // Total atmosphere values
+    ScalarFloat m_max_extinction;
 };
 
 MTS_IMPLEMENT_CLASS_VARIANT(AtmosphereMedium, Medium)

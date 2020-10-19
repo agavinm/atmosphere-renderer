@@ -25,19 +25,37 @@ namespace ruralAerosol {
     template <typename Float>
 	Float pb = 2e6; // background value in km^-3
 
-    template <typename Float, typename Spectrum>
-	class RuralAerosol : public GlobalAerosolModel<Float, Spectrum> {
+    template <typename Float, typename Spectrum, typename Wavelength>
+	class RuralAerosol : public GlobalAerosolModel<Float, Spectrum, Wavelength> {
 	public:
         
         RuralAerosol() = default;
 
-		Spectrum get_absorption(const Float wl) const override {
-			return Spectrum(Utils::interpolate(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), tabulatedValues<Float>[1], wl));
-		}
+        Spectrum get_absorption() const override {
+            return Utils::max(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), tabulatedValues<Float>[1]);
+        }
 
-		Spectrum get_scattering(const Float wl) const override {
-			return Spectrum(Utils::interpolate(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), tabulatedValues<Float>[2], wl));
-		}
+        Spectrum get_absorption(const Wavelength &wl) const override {
+            Spectrum s(0.);
+
+            for (int i = 0; i < wl.Size; i++)
+                s[i] = Utils::interpolate(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), tabulatedValues<Float>[1], wl[i]);
+
+            return s;
+        }
+
+        Spectrum get_scattering() const override {
+            return Utils::max(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), tabulatedValues<Float>[2]);
+        }
+
+        Spectrum get_scattering(const Wavelength &wl) const override {
+            Spectrum s(0.);
+
+            for (int i = 0; i < wl.Size; i++)
+                s[i] = Utils::interpolate(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), tabulatedValues<Float>[2], wl[i]);
+
+            return s;
+        }
 
 		Float get_density(Float z) const override {
             return base_density<Float> * (exp(-z / Hp<Float>) + pb<Float> / base_density<Float>);

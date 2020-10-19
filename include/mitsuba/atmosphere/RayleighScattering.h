@@ -103,10 +103,10 @@ namespace RayleighScattering {
 	// [1] A. Bucholtz 1995. Rayleigh-scattering calculations for the terrestrial atmosphere. Applied
 	//	   Optics, Vol. 34(15).
 	//	   http://augerlal.lal.in2p3.fr/pmwiki/uploads/Bucholtz.pdf
-    /*template <typename Float, typename Spectrum>
-	const Spectrum get_cross_section() {
-		return Spectrum(std::vector<Float>(ScatteringCrossSection<Float>[0], ScatteringCrossSection<Float>[0]+59),ScatteringCrossSection<Float>[2]);
-	}*/
+    template <typename Float, typename Spectrum>
+    Spectrum get_cross_section() {
+        return Utils::max(std::vector<Float>(ScatteringCrossSection<Float>[0], ScatteringCrossSection<Float>[0] + 59), &ScatteringCrossSection<Float>[2][0]);
+    }
 
     template <typename Float, typename Spectrum, typename Wavelength>
 	Spectrum get_cross_section(const Wavelength &wl) {

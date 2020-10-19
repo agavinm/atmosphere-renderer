@@ -34,7 +34,7 @@ public:
         auto wo  = warp::square_to_uniform_sphere(sample);
         auto pdf = warp::square_to_uniform_sphere_pdf(wo);
         return std::make_pair(wo, pdf);
-    } // TODO ??
+    } // TODO ?? Correct samples
 
     Float eval(const PhaseFunctionContext & /* ctx */, const MediumInteraction3f &mi,
                const Vector3f &wo, Mask active) const override {

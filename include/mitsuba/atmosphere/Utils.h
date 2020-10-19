@@ -68,7 +68,7 @@ Float interpolate(const std::vector<Float> keys, const Float* values, const Floa
     unsigned int idx = get_low(keys, x);
     Float weight = (x - keys[idx]) / (keys[idx + 1] - keys[idx]);
     Float finalResult = (1. - weight)*values[idx] + weight*values[idx + 1];
-    
+
     return finalResult;
 }
 
@@ -76,6 +76,19 @@ template <typename Float>
 Float fast_interpolate(Float wl_lower_limit, Float wl_upper_limit, Float wl_x, Float lower_limit, Float upper_limit) {
     Float weight = (wl_x - wl_lower_limit) / (wl_upper_limit - wl_lower_limit);
     Float finalResult = ((1. - weight)*lower_limit ) +  (weight*upper_limit);
+
+    return finalResult;
+}
+
+// Return max value
+template <typename Float>
+Float max(const std::vector<Float> keys, const Float* values) {
+    Float finalResult = -mitsuba::math::Infinity<Float>;
+
+    for (int i = 0; i < keys.size(); i++) {
+        if (values[i] > finalResult)
+            finalResult = values[i];
+    }
 
     return finalResult;
 }
