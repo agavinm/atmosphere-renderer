@@ -69,13 +69,8 @@ public:
                     const SurfaceInteraction3f &si, Mask active) const;
 
     /// Return the phase function of this medium
-    MTS_INLINE const PhaseFunction *phase_function(/*const MediumInteraction3f &mi = nullptr (nullptr error)*/) const { // TODO
-        //if (mi == nullptr) {
-            return m_phase_function.get();
-        /*}
-        else {
-            // TODO: Como hago que dependa de la altura ??  Nueva clase en "phase" ??
-        }*/
+    virtual const PhaseFunction *phase_function(const MediumInteraction3f &) const {
+        return m_phase_function.get();
     }
 
     /// Returns whether this specific medium instance uses emitter sampling
@@ -99,7 +94,7 @@ public:
     MTS_DECLARE_CLASS()
 protected:
     Medium();
-    Medium(const Properties &props);
+    Medium(const Properties &props, const bool is_atmosphere = false);
     virtual ~Medium();
 
 protected:

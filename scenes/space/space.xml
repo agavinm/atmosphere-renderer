@@ -72,13 +72,13 @@
       <!-- Parametres -->
       <float name="earth_radius_km" value="6.371"/>
       <point name="earth_center" x="0" y="0" z="0"/>
-      <!--<string name="aerosol_model" value="DesertDustAerosol"/>-->
+      <string name="aerosol_model" value="DesertDustAerosol"/>
 
       <!-- Phase function -->
-      <phase type="apf">
+      <!--<phase type="apf">-->
         <!-- Parametres -->
         <!--<float name="g" value="0.1"/>-->
-      </phase>
+      <!--</phase>-->
     </medium>
   </shape>
 </scene>

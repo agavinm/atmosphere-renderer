@@ -9,21 +9,31 @@ NAMESPACE_BEGIN(mitsuba)
 
 MTS_VARIANT Medium<Float, Spectrum>::Medium() : m_is_homogeneous(false), m_has_spectral_extinction(true) {}
 
-MTS_VARIANT Medium<Float, Spectrum>::Medium(const Properties &props) : m_id(props.id()) {
+MTS_VARIANT Medium<Float, Spectrum>::Medium(const Properties &props, const bool is_atmosphere) : m_id(props.id()) {
 
-    for (auto &[name, obj] : props.objects(false)) {
-        auto *phase = dynamic_cast<PhaseFunction *>(obj.get());
-        if (phase) {
-            if (m_phase_function)
-                Throw("Only a single phase function can be specified per medium");
-            m_phase_function = phase;
-            props.mark_queried(name);
+    if (!is_atmosphere) {
+        for (auto &[name, obj] : props.objects(false)) {
+            auto *phase = dynamic_cast<PhaseFunction *>(obj.get());
+            if (phase) {
+                if (m_phase_function)
+                    Throw("Only a single phase function can be specified per medium");
+                m_phase_function = phase;
+                props.mark_queried(name);
+            }
+        }
+        if (!m_phase_function) {
+            // Create a default isotropic phase function
+            m_phase_function =
+                    PluginManager::instance()->create_object<PhaseFunction>(Properties("isotropic"));
         }
     }
-    if (!m_phase_function) {
-        // Create a default isotropic phase function
-        m_phase_function =
-            PluginManager::instance()->create_object<PhaseFunction>(Properties("isotropic"));
+    else {
+        for (auto &[name, obj] : props.objects(false)) {
+            auto *phase = dynamic_cast<PhaseFunction *>(obj.get());
+            if (phase) {
+                Throw("Phase function can not be specified in atmosphere medium");
+            }
+        }
     }
 
     m_sample_emitters = props.bool_("sample_emitters", true);

@@ -23,27 +23,41 @@
 #include <mitsuba/render/sampler.h>
 #include <mitsuba/render/scene.h>
 #include <mitsuba/render/texture.h>
+#include <mitsuba/render/phase.h>
 #include <string>
+#include <random>
 
 NAMESPACE_BEGIN(mitsuba)
 
 #define LOG_MODE LogLevel::Debug
 
 // Statistics
-static long long m_stat_nan = 0, m_stat_inf = 0, m_stat_normal = 0;
+//static long long m_stat_nan = 0, m_stat_inf = 0, m_stat_normal = 0;
+
+// Random generator
+static thread_local std::random_device rd;
+static thread_local std::mt19937 mt(rd());
+template <typename Float> static thread_local std::uniform_real_distribution<float> random_dist(0.0f, 1.0f);
 
 template <typename Float, typename Spectrum>
 class AtmosphereMedium final : public Medium<Float, Spectrum> {
 public:
     MTS_IMPORT_BASE(Medium, m_is_homogeneous, m_has_spectral_extinction)
-    MTS_IMPORT_TYPES(Volume)
+    MTS_IMPORT_TYPES(PhaseFunction, Volume)
 
-    AtmosphereMedium(const Properties &props) : Base(props), m_lat(45.), m_up(0.,1.,0.), m_date(100),
+    AtmosphereMedium(const Properties &props) : Base(props, true), m_lat(45.), m_up(0.,1.,0.), m_date(100),
                                                 m_earth_albedo(0.7), m_earth_emission(0.) {
         m_D = props.int_("D", 3);
         if(m_D>3 || m_D<2)
             throw("Invalid dimension D for 'AtmosphereMedium'");
 
+        // Phase functions
+        m_apf_phase_function = PluginManager::instance()->create_object<PhaseFunction>(Properties("apf"));
+        Properties hg("hg");
+        hg.set_float("g", 0.76f);
+        m_hg_phase_function = PluginManager::instance()->create_object<PhaseFunction>(hg);
+
+        // Aerosol model
         std::string aerosolModel = props.string("aerosol_model", "");
         if (aerosolModel == "BackgroundAerosol")
             m_AerosolModel = std::make_shared<backgroundAerosol::BackgroundAerosol<Float, Spectrum, Wavelength>>();
@@ -156,7 +170,14 @@ public:
         //auto sigmas = sigmat * get_albedo(worldToLocal.transform_affine(mi.p), mi.wavelengths); // TODO: 0 is first wavelength, select the correct wavelength
         auto sigman = get_combined_extinction(mi, active) - sigmat;
 
-        //Log(Info, "Sigma_n \"%s\"", sigman);
+        /*Log(Info, "p \"%s\"", p);
+        Log(Info, "Sigma_t \"%s\"", sigmat);
+        Log(Info, "Sigma_s \"%s\"", sigmas);
+        Log(Info, "Sigma_n \"%s\"", sigman);*/
+        /*for (const auto &a : sigmat) {
+            if (isnan(a) || isinf(a))
+                Log(Info, "Sigma_t \"%s\"", sigmat);
+        }*/
 
         return { sigmas, sigman, sigmat };
     }
@@ -182,6 +203,24 @@ public:
             << "]";
         return oss.str();
     }
+
+    const PhaseFunction *phase_function(const MediumInteraction3f &mi) const override {
+        // Get scattering
+        auto p = worldToLocal.transform_affine(mi.p);
+        auto rayleigh_scattering = get_rayleigh_scattering(p, mi.wavelengths); // Molecular scattering (sigmas^m)
+        auto aerosol_scattering = get_aerosol_scattering(p, mi.wavelengths); // Aerosol scattering (sigmas^a)
+
+        // Get scattering proportion
+        Float rayleigh_scattering_norm = norm(rayleigh_scattering);
+        Float aerosol_scattering_norm = norm(aerosol_scattering);
+        Float scattering_norm = rayleigh_scattering_norm + aerosol_scattering_norm;
+
+        // Russian roulette
+        if (scattering_norm == Float(0) || random_dist<Float>(mt) < rayleigh_scattering_norm / scattering_norm)
+            return m_apf_phase_function.get(); // P(molecular) = [0, rayleigh_scattering_norm / scattering_norm)
+        else
+            return m_hg_phase_function.get(); // P(aerosol) = [rayleigh_scattering_norm / scattering_norm,  1)
+    } // TODO: Check
 
     /**
      * Computes the geopotential height of a point p given in local coordinates.
@@ -367,6 +406,7 @@ public:
 private:
     //ref<Volume> m_sigmat;
     //ScalarFloat m_scale;
+    ref<PhaseFunction> m_apf_phase_function, m_hg_phase_function;
 
     ScalarBoundingBox3f m_aabb;
     //ScalarFloat m_max_density;

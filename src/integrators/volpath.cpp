@@ -151,7 +151,7 @@ public:
                     masked(throughput, not_spectral && act_medium_scatter) *= mi.sigma_s / mi.sigma_t;
 
                 PhaseFunctionContext phase_ctx(sampler);
-                auto phase = mi.medium->phase_function();
+                auto phase = mi.medium->phase_function(mi);
 
                 // --------------------- Emitter sampling ---------------------
                 Mask sample_emitters = mi.medium->use_emitter_sampling();

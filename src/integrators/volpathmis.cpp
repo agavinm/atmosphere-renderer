@@ -218,7 +218,7 @@ public:
                         update_weights(p_over_f, mi.sigma_t, mi.sigma_s, channel, not_spectral && act_medium_scatter);
 
                     PhaseFunctionContext phase_ctx(sampler);
-                    auto phase = mi.medium->phase_function();
+                    auto phase = mi.medium->phase_function(mi);
 
                     // --------------------- Emitter sampling ---------------------
                     Mask sample_emitters = mi.medium->use_emitter_sampling();
