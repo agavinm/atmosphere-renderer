@@ -22,7 +22,7 @@ public:
     MTS_IMPORT_BASE(PhaseFunction, m_flags)
     MTS_IMPORT_TYPES(PhaseFunctionContext)
 
-    AtmospherePhaseFunction(const Properties &props) : Base(props), m_constant(Float(3) / (Float(16) * M_PI)) {
+    AtmospherePhaseFunction(const Properties &props) : Base(props), m_constant(Float(3) / (Float(16) * Float(M_PI))) {
         m_flags = +PhaseFunctionFlags::Anisotropic; // TODO ??
     }
 
@@ -40,10 +40,12 @@ public:
                const Vector3f &wo, Mask active) const override {
         MTS_MASKED_FUNCTION(ProfilerPhase::PhaseFunctionEvaluate, active);
 
-        const auto gamma = RayleighScattering::gamma<Float>(mi.wavelengths[0]); // TODO: 0 is first wavelength, select the correct wavelength
+        /*const auto gamma = RayleighScattering::gamma<Float>(mi.wavelengths[0]); //TODO: Use all wl
 
         return (m_constant / (Float(1) + Float(2) * gamma)) *
-               (Float(1) + Float(3) * gamma + (Float(1) - gamma) * pow(dot(wo, mi.wi), Float(2)));
+               (Float(1) + Float(3) * gamma + (Float(1) - gamma) * pow(dot(wo, mi.wi), Float(2)));*/
+
+        return m_constant * (1 + pow(dot(wo, mi.wi), Float(2)));
     } // TODO: Only is F^m
 
     std::string to_string() const override { return "AtmospherePhaseFunction[]"; }

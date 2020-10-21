@@ -1,0 +1,54 @@
+<scene version="2.2.1">
+  <integrator type="volpath">
+    <!-- Instantiate a path tracer with a max. path length of 8 -->
+    <integer name="max_depth" value="128"/>
+  </integrator>
+
+  <!-- Instantiate a perspective camera with 45 degrees field of view -->
+  <sensor type="perspective">
+    <!-- Rotate the camera around the Y axis by 180 degrees -->
+    <transform name="to_world">
+      <rotate x="1" angle="90"/>
+      <translate x="0" y="100" z="0"/>
+    </transform>
+    <float name="fov" value="15"/>
+
+    <!-- Render with 32 samples per pixel using a basic
+          independent sampling strategy -->
+    <sampler type="independent">
+      <integer name="sample_count" value="128"/>
+    </sampler>
+
+    <!-- Generate an EXR image at HD resolution -->
+    <film type="hdrfilm">
+      <integer name="width" value="1920"/>
+      <integer name="height" value="1080"/>
+    </film>
+  </sensor>
+  
+  <!-- Distance unit: 10^6 meters -->
+  
+  <!-- Sun -->
+  <shape type="sphere">
+    <float name="radius" value="696.340"/>
+    <point name="center" x="0" y="148432.926919" z="18633.0116798"/> <!-- Distance = 149597.870700 * 10^6 meters -->
+    
+    <emitter type="area">
+      <spectrum name="radiance" value="15400000"/> <!-- 15400000 W per square metre per steradian -->
+    </emitter>
+  </shape>
+  
+  <!-- Earth atmosphere -->
+  <shape type="sphere">
+    <float name="radius" value="6.53136"/>
+    <point name="center" x="0" y="0" z="0"/>
+    
+    <bsdf type="null"/>
+    
+    <medium type="atmosphere" name="interior">
+      <!-- Parametres -->
+      <float name="earth_radius_km" value="6.371"/>
+      <point name="earth_center" x="0" y="0" z="0"/>
+    </medium>
+  </shape>
+</scene>

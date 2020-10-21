@@ -205,21 +205,36 @@ public:
     }
 
     const PhaseFunction *phase_function(const MediumInteraction3f &mi) const override {
+        if (m_AerosolModel == nullptr)
+            return m_apf_phase_function.get();
+
         // Get scattering
         auto p = worldToLocal.transform_affine(mi.p);
         auto rayleigh_scattering = get_rayleigh_scattering(p, mi.wavelengths); // Molecular scattering (sigmas^m)
         auto aerosol_scattering = get_aerosol_scattering(p, mi.wavelengths); // Aerosol scattering (sigmas^a)
 
-        // Get scattering proportion
-        Float rayleigh_scattering_norm = norm(rayleigh_scattering);
-        Float aerosol_scattering_norm = norm(aerosol_scattering);
-        Float scattering_norm = rayleigh_scattering_norm + aerosol_scattering_norm;
+        // Get scattering probability
+        Float rayleigh_scattering_prob = 0.;//, aerosol_scattering_prob = 0.;
+        Float size = 0.;
+        for (int i = 0; i < rayleigh_scattering.Size; i++) {
+            Float total = rayleigh_scattering[i] + aerosol_scattering[i];
+            if (total != Float(0.)) {
+                size++;
+                rayleigh_scattering_prob += rayleigh_scattering[i] / total;
+                //aerosol_scattering_prob += aerosol_scattering[i] / total;
+            }
+        }
+        rayleigh_scattering_prob /= size;
+        //aerosol_scattering_prob /= size;
+
+        //Log(Info, "rayleigh_scattering = \"%s\"; aerosol_scattering = \"%s\"", rayleigh_scattering, aerosol_scattering);
+        //Log(Info, "rayleigh_scattering_prob = \"%s\"; aerosol_scattering_prob = \"%s\"", rayleigh_scattering_prob, aerosol_scattering_prob);
 
         // Russian roulette
-        if (scattering_norm == Float(0) || random_dist<Float>(mt) < rayleigh_scattering_norm / scattering_norm)
-            return m_apf_phase_function.get(); // P(molecular) = [0, rayleigh_scattering_norm / scattering_norm)
+        if (random_dist<Float>(mt) < rayleigh_scattering_prob)
+            return m_apf_phase_function.get(); // P(molecular) = [0, rayleigh_scattering_prob) //TODO: Use all wl
         else
-            return m_hg_phase_function.get(); // P(aerosol) = [rayleigh_scattering_norm / scattering_norm,  1)
+            return m_hg_phase_function.get(); // P(aerosol) = [rayleigh_scattering_prob,  1) //TODO: Use all wl
     } // TODO: Check
 
     /**
