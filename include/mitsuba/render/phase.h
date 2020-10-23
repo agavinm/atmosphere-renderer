@@ -129,8 +129,8 @@ public:
      *
      * \return The value of the phase function in direction wo
      */
-    virtual Float eval(const PhaseFunctionContext &ctx, const MediumInteraction3f &mi,
-                       const Vector3f &wo, Mask active = true) const = 0;
+    virtual Spectrum eval(const PhaseFunctionContext &ctx, const MediumInteraction3f &mi,
+                          const Vector3f &wo, Mask active = true) const = 0;
 
     /**
      * \brief Returns the microflake projected area

@@ -17,7 +17,7 @@ public:
         PYBIND11_OVERLOAD_PURE(Return, PhaseFunction, sample, ctx, mi, sample, active);
     }
 
-    Float eval(const PhaseFunctionContext &ctx, const MediumInteraction3f &mi,
+    Spectrum eval(const PhaseFunctionContext &ctx, const MediumInteraction3f &mi,
                const Vector3f &wo, Mask active) const override {
         PYBIND11_OVERLOAD_PURE(Float, PhaseFunction, eval, ctx, mi, wo, active);
     }

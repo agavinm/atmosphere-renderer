@@ -38,7 +38,7 @@ namespace ruralAerosol {
         Spectrum get_absorption(const Wavelength &wl) const override {
             Spectrum s(0.);
 
-            for (int i = 0; i < wl.Size; i++)
+            for (size_t i = 0; i < wl.Size; i++)
                 s[i] = Utils::interpolate(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), tabulatedValues<Float>[1], wl[i]);
 
             return s;
@@ -51,7 +51,7 @@ namespace ruralAerosol {
         Spectrum get_scattering(const Wavelength &wl) const override {
             Spectrum s(0.);
 
-            for (int i = 0; i < wl.Size; i++)
+            for (size_t i = 0; i < wl.Size; i++)
                 s[i] = Utils::interpolate(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), tabulatedValues<Float>[2], wl[i]);
 
             return s;

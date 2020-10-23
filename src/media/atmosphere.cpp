@@ -52,10 +52,10 @@ public:
             throw("Invalid dimension D for 'AtmosphereMedium'");
 
         // Phase functions
-        m_apf_phase_function = PluginManager::instance()->create_object<PhaseFunction>(Properties("apf"));
+        m_molecular_phase_function = PluginManager::instance()->create_object<PhaseFunction>(Properties("cha"));
         Properties hg("hg");
         hg.set_float("g", 0.76f);
-        m_hg_phase_function = PluginManager::instance()->create_object<PhaseFunction>(hg);
+        m_aerosol_phase_function = PluginManager::instance()->create_object<PhaseFunction>(hg);
 
         // Aerosol model
         std::string aerosolModel = props.string("aerosol_model", "");
@@ -112,7 +112,7 @@ public:
         Log(LOG_MODE, "Initialized Bounding Box as \"%s\"", oss.str());
 
         // init
-        m_lat_rad = m_lat / 180.*M_PI;
+        m_lat_rad = m_lat / Float(180.*M_PI);
         m_uw = Vector3f(cos(m_lat_rad), sin(m_lat_rad), 0);
         m_hw = Vector3f(-sin(m_lat_rad), cos(m_lat_rad), 0);
 
@@ -120,6 +120,7 @@ public:
         Vector3f p(0, m_earth_radius, 0);
         Spectrum extinction = get_extinction(p, -1);
         m_max_extinction = extinction[0];
+        Mask mask;
 
         for (int i = 0; i < 8699; i++) {
             p = p + Vector3f(0, Float(0.01) / m_earth_scale, 0);
@@ -206,7 +207,7 @@ public:
 
     const PhaseFunction *phase_function(const MediumInteraction3f &mi) const override {
         if (m_AerosolModel == nullptr)
-            return m_apf_phase_function.get();
+            return m_molecular_phase_function.get();
 
         // Get scattering
         auto p = worldToLocal.transform_affine(mi.p);
@@ -216,7 +217,7 @@ public:
         // Get scattering probability
         Float rayleigh_scattering_prob = 0.;//, aerosol_scattering_prob = 0.;
         Float size = 0.;
-        for (int i = 0; i < rayleigh_scattering.Size; i++) {
+        for (size_t i = 0; i < rayleigh_scattering.Size; i++) {
             Float total = rayleigh_scattering[i] + aerosol_scattering[i];
             if (total != Float(0.)) {
                 size++;
@@ -232,9 +233,9 @@ public:
 
         // Russian roulette
         if (random_dist<Float>(mt) < rayleigh_scattering_prob)
-            return m_apf_phase_function.get(); // P(molecular) = [0, rayleigh_scattering_prob) //TODO: Use all wl
+            return m_molecular_phase_function.get(); // P(molecular) = [0, rayleigh_scattering_prob) //TODO: Use all wl
         else
-            return m_hg_phase_function.get(); // P(aerosol) = [rayleigh_scattering_prob,  1) //TODO: Use all wl
+            return m_aerosol_phase_function.get(); // P(aerosol) = [rayleigh_scattering_prob,  1) //TODO: Use all wl
     } // TODO: Check
 
     /**
@@ -421,7 +422,7 @@ public:
 private:
     //ref<Volume> m_sigmat;
     //ScalarFloat m_scale;
-    ref<PhaseFunction> m_apf_phase_function, m_hg_phase_function;
+    ref<PhaseFunction> m_molecular_phase_function, m_aerosol_phase_function;
 
     ScalarBoundingBox3f m_aabb;
     //ScalarFloat m_max_density;

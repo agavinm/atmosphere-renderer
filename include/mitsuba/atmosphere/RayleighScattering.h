@@ -113,7 +113,7 @@ namespace RayleighScattering {
 		// interpolates with one given value for wavelenght
         Spectrum s(0.);
 
-        for (int i = 0; i < wl.Size; i++)
+        for (size_t i = 0; i < wl.Size; i++)
             s[i] = Utils::interpolate(std::vector<Float>(ScatteringCrossSection<Float>[0], ScatteringCrossSection<Float>[0] + 59), &ScatteringCrossSection<Float>[2][0], wl[i]);
 
         return s;

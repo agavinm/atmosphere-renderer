@@ -226,7 +226,7 @@ public:
                     Mask active_e = act_medium_scatter && sample_emitters;
                     if (any_or<true>(active_e)) {
                         auto [p_over_f_nee_end, p_over_f_end, emitted, ds] = sample_emitter(mi, true, scene, sampler, medium, p_over_f, channel, active_e);
-                        Float phase_val = phase->eval(phase_ctx, mi, ds.d, active_e);
+                        auto phase_val = phase->eval(phase_ctx, mi, ds.d, active_e);
                         update_weights(p_over_f_nee_end, 1.0f, phase_val, channel, active_e);
                         update_weights(p_over_f_end, select(ds.delta, 0.f, phase_val), phase_val, channel, active_e);
                         masked(result, active_e) += mis_weight(p_over_f_nee_end, p_over_f_end) * emitted;

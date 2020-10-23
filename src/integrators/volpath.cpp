@@ -162,7 +162,7 @@ public:
                 Mask active_e = act_medium_scatter && sample_emitters;
                 if (any_or<true>(active_e)) {
                     auto [emitted, ds] = sample_emitter(mi, true, scene, sampler, medium, channel, active_e);
-                    Float phase_val = phase->eval(phase_ctx, mi, ds.d, active_e);
+                    auto phase_val = phase->eval(phase_ctx, mi, ds.d, active_e);
                     masked(result, active_e) += throughput * phase_val * emitted;
                 }
 

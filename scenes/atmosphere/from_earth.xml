@@ -1,64 +1,80 @@
 <scene version="2.2.1">
   <integrator type="volpath">
     <!-- Instantiate a path tracer with a max. path length of 8 -->
-    <integer name="max_depth" value="128"/>
+    <integer name="max_depth" value="8"/>
   </integrator>
 
-  <!-- Instantiate a perspective camera with 45 degrees field of view -->
+  <!-- Instantiate a perspective camera with 15 degrees field of view -->
   <sensor type="perspective">
-    <!-- Rotate the camera around the Y axis by 180 degrees -->
     <transform name="to_world">
+      <!-- Rotate the camera around the X axis by 90 degrees -->
       <rotate x="1" angle="90"/>
-      <translate x="0" y="0" z="6.372"/>
+      <!-- Translate the camera 1000 meters above the ground at the north pole -->
+      <translate x="0" y="0" z="6372"/>
     </transform>
     <float name="fov" value="15"/>
 
-    <!-- Render with 32 samples per pixel using a basic
+    <!-- Render with 128 samples per pixel using a basic
           independent sampling strategy -->
     <sampler type="independent">
-      <integer name="sample_count" value="128"/>
+      <integer name="sample_count" value="8"/>
     </sampler>
 
-    <!-- Generate an EXR image at HD resolution -->
+    <!-- Generate an EXR image at FHD resolution -->
     <film type="hdrfilm">
-      <integer name="width" value="1920"/>
-      <integer name="height" value="1080"/>
+      <integer name="width" value="192"/>
+      <integer name="height" value="108"/>
     </film>
   </sensor>
   
-  <!-- Distance unit: 10^6 meters -->
+  <!-- Distance unit: meters -->
   
   <!-- Sun -->
   <shape type="sphere">
-    <float name="radius" value="696.340"/>
-    <point name="center" x="0" y="148432.926919" z="18633.0116798"/> <!-- Distance = 149597.870700 * 10^6 meters -->
+    <float name="radius" value="696340"/>
+    <point name="center" x="0" y="148432926.919" z="18633011.6798"/> <!-- Distance = 149597870700 meters -->
     
     <emitter type="area">
-      <spectrum name="radiance" value="15400000"/> <!-- 15400000 W per square metre per steradian -->
+      <spectrum name="radiance" value="154000"/> <!-- 15400000 W per square metre per steradian ?? -->
     </emitter>
   </shape>
+  
+  <!--<medium type="homogeneous" id="atmosphere">
+    <rgb name="sigma_t" value="0.01, 0.01, 0.01"/>
+    <rgb name="albedo" value="1, 1, 1"/>
+  </medium>-->
+  
+  <medium type="atmosphere" id="atmosphere">
+    <!-- Parametres -->
+    <float name="earth_radius_km" value="6371"/>
+    <point name="earth_center" x="0" y="0" z="0"/>
+    <!-- <string name="aerosol_model" value="PolarArticAerosol"/>-->
+  </medium>
 
   <!-- Earth -->
   <shape type="sphere">
-    <float name="radius" value="6.371"/>
+    <float name="radius" value="6371"/>
 
     <bsdf type="diffuse">
-      <rgb name="reflectance" value="0.001, 0.001, 0.001"/>
+      <rgb name="reflectance" value="0, 0, 0"/>
     </bsdf>
   </shape>
   
   <!-- Earth atmosphere -->
   <shape type="sphere">
-    <float name="radius" value="6.53136"/>
+    <float name="radius" value="6531.360"/>
     <point name="center" x="0" y="0" z="0"/>
-    <!--<boolean name="flip_normals" value="true"/>-->
     
     <bsdf type="null"/>
-    
-    <medium type="atmosphere" name="interior">
-      <!-- Parametres -->
-      <float name="earth_radius_km" value="6.371"/>
-      <point name="earth_center" x="0" y="0" z="0"/>
-    </medium>
+  </shape>
+  
+  <shape type="sphere">
+    <float name="radius" value="0.1"/>
+    <point name="center" x="0" y="0" z="6372"/>
+    <boolean name="flip_normals" value="true"/>
+
+    <bsdf type="null"/>
+      
+    <ref id="atmosphere" name="interior"/>
   </shape>
 </scene>

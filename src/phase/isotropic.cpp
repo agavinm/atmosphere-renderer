@@ -37,7 +37,7 @@ public:
         return std::make_pair(wo, pdf);
     }
 
-    Float eval(const PhaseFunctionContext & /* ctx */, const MediumInteraction3f & /* mi */,
+    Spectrum eval(const PhaseFunctionContext & /* ctx */, const MediumInteraction3f & /* mi */,
                const Vector3f &wo, Mask active) const override {
         MTS_MASKED_FUNCTION(ProfilerPhase::PhaseFunctionEvaluate, active);
         return warp::square_to_uniform_sphere_pdf(wo);
