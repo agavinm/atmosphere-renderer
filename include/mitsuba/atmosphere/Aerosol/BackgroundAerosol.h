@@ -33,7 +33,7 @@ namespace backgroundAerosol {
         BackgroundAerosol() = default;
 
         Spectrum get_absorption() const override {
-            Utils::max(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), tabulatedValues<Float>[1]);
+            return Utils::max(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), &tabulatedValues<Float>[1][0]);
         }
 
         Spectrum get_absorption(const Wavelength &wl) const override {

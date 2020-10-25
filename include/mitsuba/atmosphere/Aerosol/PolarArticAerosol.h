@@ -32,7 +32,7 @@ namespace polarArticAerosol {
         PolarArticAerosol() = default;
 
         Spectrum get_absorption() const override {
-            return Utils::max(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), tabulatedValues<Float>[1]);
+            return Utils::max(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), &tabulatedValues<Float>[1][0]);
         }
 
         Spectrum get_absorption(const Wavelength &wl) const override {
@@ -45,7 +45,7 @@ namespace polarArticAerosol {
         }
 
         Spectrum get_scattering() const override {
-            return Utils::max(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), tabulatedValues<Float>[2]);
+            return Utils::max(std::vector<Float>(tabulatedValues<Float>[0], tabulatedValues<Float>[0] + 1000), &tabulatedValues<Float>[2][0]);
         }
 
         Spectrum get_scattering(const Wavelength &wl) const override {

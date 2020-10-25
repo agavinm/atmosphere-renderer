@@ -42,10 +42,11 @@ public:
         Spectrum result = 0.;
 
         for (size_t i = 0; i < result.Size; i++) {
-            const auto gamma = RayleighScattering::gamma<Float>(mi.wavelengths[i]);
+            const auto gamma = RayleighScattering::gamma<Float, UInt32, Mask>(mi.wavelengths[i]);
 
+            const auto cosine = dot(wo, mi.wi);
             result[i] = (m_constant / (Float(1) + Float(2) * gamma)) *
-                    (Float(1) + Float(3) * gamma + (Float(1) - gamma) * pow(dot(wo, mi.wi), Float(2)));
+                    (Float(1) + Float(3) * gamma + (Float(1) - gamma) * (cosine * cosine));
         }
 
         return result;

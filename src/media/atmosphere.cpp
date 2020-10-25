@@ -1,7 +1,7 @@
 #include <enoki/stl.h>
 
 #include <memory>
-#include <mitsuba/atmosphere/Aerosol/BackgroundAerosol.h>
+/*#include <mitsuba/atmosphere/Aerosol/BackgroundAerosol.h>
 #include <mitsuba/atmosphere/Aerosol/DesertDustAerosol.h>
 #include <mitsuba/atmosphere/Aerosol/MaritimeCleanAerosol.h>
 #include <mitsuba/atmosphere/Aerosol/MaritimeMineralAerosol.h>
@@ -9,7 +9,7 @@
 #include <mitsuba/atmosphere/Aerosol/PolarArticAerosol.h>
 #include <mitsuba/atmosphere/Aerosol/RemoteContinentalAerosol.h>
 #include <mitsuba/atmosphere/Aerosol/RuralAerosol.h>
-#include <mitsuba/atmosphere/Aerosol/UrbanAerosol.h>
+#include <mitsuba/atmosphere/Aerosol/UrbanAerosol.h>*/
 #include <mitsuba/atmosphere/GlobalAtmosphericAerosol.h>
 #include <mitsuba/atmosphere/RayleighScattering.h>
 #include <mitsuba/atmosphere/StandardAtmosphere.h>
@@ -37,7 +37,7 @@ NAMESPACE_BEGIN(mitsuba)
 // Random generator
 static thread_local std::random_device rd;
 static thread_local std::mt19937 mt(rd());
-template <typename Float> static thread_local std::uniform_real_distribution<float> random_dist(0.0f, 1.0f);
+static thread_local std::uniform_real_distribution<float> random_dist(0.0f, 1.0f);
 
 template <typename Float, typename Spectrum>
 class AtmosphereMedium final : public Medium<Float, Spectrum> {
@@ -58,7 +58,7 @@ public:
         m_aerosol_phase_function = PluginManager::instance()->create_object<PhaseFunction>(hg);
 
         // Aerosol model
-        std::string aerosolModel = props.string("aerosol_model", "");
+        /*std::string aerosolModel = props.string("aerosol_model", "");
         if (aerosolModel == "BackgroundAerosol")
             m_AerosolModel = std::make_shared<backgroundAerosol::BackgroundAerosol<Float, Spectrum, Wavelength>>();
         else if (aerosolModel == "DesertDustAerosol")
@@ -77,7 +77,7 @@ public:
             m_AerosolModel = std::make_shared<ruralAerosol::RuralAerosol<Float, Spectrum, Wavelength>>();
         else if (aerosolModel == "UrbanAerosol")
             m_AerosolModel = std::make_shared<urbanAerosol::UrbanAerosol<Float, Spectrum, Wavelength>>();
-        else
+        else*/
             m_AerosolModel = nullptr;
 
         m_is_homogeneous = false;
@@ -92,10 +92,10 @@ public:
         //m_aabb        = m_sigmat->bbox();
 
         m_earth_radius = props.float_("earth_radius_km");
-        Log(LOG_MODE, "Initialized Earth with \"%s\" radius.", std::to_string(m_earth_radius));
+        Log(LOG_MODE, "Initialized Earth with \"%s\" radius.", m_earth_radius);
 
         m_earth_scale = Float(6356.766) / m_earth_radius;
-        Log(LOG_MODE, "Initialized Earth scale as \"%s\".", std::to_string(m_earth_scale));
+        Log(LOG_MODE, "Initialized Earth scale as \"%s\".", m_earth_scale);
 
         Point3f earth_center = props.point3f("earth_center");
         worldToLocal = Transform4f(Matrix4f(Point4f(1, 0, 0, 0),
@@ -104,8 +104,8 @@ public:
                                    Point4f(earth_center.x(), earth_center.y(), earth_center.z(), 1))).inverse();
         Log(LOG_MODE, "Initialized worldToLocal transform as \"%s\"", worldToLocal);
         
-        const Float box_radius = m_earth_radius + 160.0f / m_earth_scale;
-        m_aabb = ScalarBoundingBox3f(Point3f(earth_center.x() - box_radius, earth_center.y() - box_radius, earth_center.z() - box_radius),
+        const Float box_radius = m_earth_radius + Float(160.) / m_earth_scale;
+        m_aabb = BoundingBox3f(Point3f(earth_center.x() - box_radius, earth_center.y() - box_radius, earth_center.z() - box_radius),
                                      Point3f(earth_center.x() + box_radius, earth_center.y() + box_radius, earth_center.z() + box_radius));
         std::ostringstream oss;
         oss << m_aabb;
@@ -120,19 +120,47 @@ public:
         Vector3f p(0, m_earth_radius, 0);
         Spectrum extinction = get_extinction(p, -1);
         m_max_extinction = extinction[0];
-        Mask mask;
 
         for (int i = 0; i < 8699; i++) {
             p = p + Vector3f(0, Float(0.01) / m_earth_scale, 0);
 
             extinction = get_extinction(p, -1);
 
-            if (extinction[0] > m_max_extinction) {
+            if (all(extinction[0] > m_max_extinction)) {
                 m_max_extinction = extinction[0];
             }
         }
 
         Log(Info, "Max extinction = \"%s\"", m_max_extinction);
+
+        /*const Mask msk = Float(0.4) < Float(1);
+        Log(Info, "0.4 < 1; msk = \"%s\", count(msk) = \"%s\", count(!msk) = \"%s\"", msk, count(msk), count(!msk));
+
+        std::vector<float> array = {100, 20, 10, 30, 40, 50};
+        auto x = Float(25);
+
+        UInt32 j = binary_search(
+                0,
+                array.size() - 2,
+                [&](UInt32 index) {
+                    return !(gather<Float>(array.data(), index) <= x && gather<Float>(array.data(), index + 1) >= x);
+                } // It search until return false
+        );
+
+        Log(Info, "array = \"%s\"", array);
+        Log(Info, "x = \"%s\"", x);
+        Log(Info, "j = \"%s\"", j); // array[j] <= x && array[j+1] >= x*/
+
+        /*const std::vector<float> keys = {1, 2, 3, 4, 5, 6}, values = {0.1, 0.2, 0.3, 0.74, 0.5, 0.6};
+        const auto x = Utils::interpolate<Float, UInt32>(keys, values, Float(3.5));
+        Log(Info, "x = \"%s\"", x);*/
+
+        /*const auto keys = RayleighScattering::ScatteringCrossSection[0];
+        const Float x = 453;
+        const auto idx1 = Utils::get_low(keys, x);
+        const auto idx2 = Utils::get_low2<Float, UInt32, Mask>(keys, x);
+        Log(Info, "idx1 = \"%s\"", idx1);
+        Log(Info, "idx2 = \"%s\"", idx2);*/
     }
 
     UnpolarizedSpectrum
@@ -156,15 +184,19 @@ public:
         Log(LOG_MODE, "World vector p \"%s\"", mi.p);
 
         // After:
-        UnpolarizedSpectrum sigmas = 0.f;
-        UnpolarizedSpectrum sigmat = 0.f;
-        //UnpolarizedSpectrum sigman = 0.f;
-
         auto p = worldToLocal.transform_affine(mi.p);
-        if (!is_out_of_medium(p)) {
-            sigmas = get_scattering(p, mi.wavelengths);
-            sigmat = get_absorption(p, mi.wavelengths) + sigmas; //get_extinction(p, mi.wavelengths);
-        }
+        const Mask out_of_medium = is_out_of_medium(p);
+        UnpolarizedSpectrum sigmas = enoki::select(
+                out_of_medium,
+                Spectrum(0.),
+                get_scattering(p, mi.wavelengths)
+        );
+        UnpolarizedSpectrum sigmat = enoki::select(
+                out_of_medium,
+                Spectrum(0.),
+                get_absorption(p, mi.wavelengths) + sigmas
+        );
+        //UnpolarizedSpectrum sigman = 0.f;
 
         // Before:
         //auto sigmat = m_scale * m_sigmat->eval(mi, active); // TODO: Use correct sigma_t
@@ -216,23 +248,33 @@ public:
 
         // Get scattering probability
         Float rayleigh_scattering_prob = 0.;//, aerosol_scattering_prob = 0.;
-        Float size = 0.;
+        Float size = 0;
         for (size_t i = 0; i < rayleigh_scattering.Size; i++) {
             Float total = rayleigh_scattering[i] + aerosol_scattering[i];
-            if (total != Float(0.)) {
-                size++;
-                rayleigh_scattering_prob += rayleigh_scattering[i] / total;
-                //aerosol_scattering_prob += aerosol_scattering[i] / total;
-            }
+            const Mask msk = total != Float(0.);
+            size += enoki::select(
+                    msk,
+                    Float(1),
+                    Float(0)
+            );
+            rayleigh_scattering_prob += enoki::select(
+                    msk,
+                    rayleigh_scattering[i] / total,
+                    Float(0)
+            );
+            //rayleigh_scattering_prob += rayleigh_scattering[i] / total;
+            //aerosol_scattering_prob += aerosol_scattering[i] / total;
         }
         rayleigh_scattering_prob /= size;
         //aerosol_scattering_prob /= size;
+
+        Log(Info, "size = \"%s\"; rayleigh_scattering_prob = \"%s\"; hmean = \"%s\"", size, rayleigh_scattering_prob, enoki::hmean(rayleigh_scattering_prob));
 
         //Log(Info, "rayleigh_scattering = \"%s\"; aerosol_scattering = \"%s\"", rayleigh_scattering, aerosol_scattering);
         //Log(Info, "rayleigh_scattering_prob = \"%s\"; aerosol_scattering_prob = \"%s\"", rayleigh_scattering_prob, aerosol_scattering_prob);
 
         // Russian roulette
-        if (random_dist<Float>(mt) < rayleigh_scattering_prob)
+        if (random_dist(mt) < enoki::hmean(rayleigh_scattering_prob))
             return m_molecular_phase_function.get(); // P(molecular) = [0, rayleigh_scattering_prob) //TODO: Use all wl
         else
             return m_aerosol_phase_function.get(); // P(aerosol) = [rayleigh_scattering_prob,  1) //TODO: Use all wl
@@ -247,8 +289,8 @@ public:
         Float l = norm(p);
         Float height = (l - m_earth_radius) * m_earth_scale;
         Log(LOG_MODE, "Vector p \"%s\"", p);
-        Log(LOG_MODE, "Pre-Height of ray collision from the earth center \"%s\".", std::to_string(l));
-        Log(LOG_MODE, "Height of ray collision from the earth center \"%s\" km.", std::to_string(height));
+        Log(LOG_MODE, "Pre-Height of ray collision from the earth center \"%s\".", l);
+        Log(LOG_MODE, "Height of ray collision from the earth center \"%s\" km.", height);
         return height;
         //return (l - m_earth_radius);
     }
@@ -277,19 +319,17 @@ public:
      * @param p
      * @return
      */
-    bool is_out_of_medium(const Vector3f &p) const {
+    Mask is_out_of_medium(const Vector3f &p) const {
         Float height = get_height(p);
-
-        if (!(height >= Float(0) && height <= Float(86)))
-            return true;
-
-        return false;
+        return !(height >= Float(0) && height <= Float(86));
     }
 
     Spectrum get_extinction(const Vector3f &p, const Wavelength &wl) const {
-        if (is_out_of_medium(p))
-            return Spectrum(0.);
-        return get_absorption(p, wl) + get_scattering(p, wl);
+        return enoki::select(
+                is_out_of_medium(p),
+                Spectrum(0.),
+                get_absorption(p, wl) + get_scattering(p, wl)
+                );
     }
 
     /*Spectrum get_albedo(const Vector3f &p, const Wavelength &wl) const {
@@ -338,18 +378,18 @@ public:
 
     Spectrum get_rayleigh_scattering(const Vector3f &p, const Wavelength &wl) const {
         Float h = get_height(p);
-        //Log(LOG_MODE, "Height of ray collision from the earth center \"%s\" km.", std::to_string(h));
-        Float lat = get_latitude(p);
-        //Log(LOG_MODE, "Latitude of ray collision: \"%s\"", std::to_string(lat));
+        //Log(LOG_MODE, "Height of ray collision from the earth center \"%s\" km.", h);
+        //Float lat = get_latitude(p);
+        //Log(LOG_MODE, "Latitude of ray collision: \"%s\"", lat);
 
         Spectrum cross_section(0.);
 
         Float density = m_standardAtmosphere.get_number_density(h);
 
         if (wl == -1)
-            cross_section = RayleighScattering::get_cross_section<Float, Spectrum>();
+            cross_section = RayleighScattering::get_cross_section<Spectrum>();
         else
-            cross_section = RayleighScattering::get_cross_section<Float, Spectrum, Wavelength>(wl);
+            cross_section = RayleighScattering::get_cross_section<Float, UInt32, Mask, Spectrum, Wavelength>(wl);
 
         Spectrum finalResult = density * cross_section;
 
@@ -360,13 +400,25 @@ public:
 
     Spectrum get_ozone_absorption(const Vector3f &p, const Wavelength &wl, const int month = 1) const {
         Float h = get_height(p);
-        Spectrum cross_section(0.);
-        cross_section = RayleighScattering::get_ozone_cross_section<Float, Spectrum, Wavelength>(wl);
-        cross_section *= 1e-10;
-        Float density = StandardAtmosphere::StandardAtmosphere<Float>::get_robson_ozone(h, 1);//  get_robson_ozone(h, 1);
-        Spectrum result = density*cross_section;
 
-        //Log(Info, "get_ozone_absorption = \"%s\"", result);
+        Spectrum cross_section(0.);
+
+        if (wl == -1)
+            cross_section = RayleighScattering::get_ozone_cross_section<Spectrum>();
+        else
+            cross_section = RayleighScattering::get_ozone_cross_section<Float, UInt32, Mask, Spectrum, Wavelength>(wl);
+
+        cross_section *= 1e-10;
+
+        Float density = StandardAtmosphere::StandardAtmosphere<Float, UInt32, Mask>::get_robson_ozone(h, 1);//  get_robson_ozone(h, 1);
+
+        Spectrum result = cross_section * density;
+
+        //Log(Info, "h = \"%s\"", h);
+        //Log(Info, "cross_section = \"%s\"", cross_section);
+        //Log(Info, "cross_section2 = \"%s\"", cross_section);
+        //Log(Info, "density = \"%s\"", density);
+        //Log(Info, "result = \"%s\"", result);
         return result;
 
         //return Spectrum(0.);
@@ -413,9 +465,9 @@ public:
 
     /*~AtmosphereMedium() {
         Float total = Float(100) / (m_stat_nan + m_stat_inf + m_stat_normal);
-        Log(Info, "Number of NaN in get_albedo(): \"%s\" (\"%s\"\"%\")", std::to_string(m_stat_nan), std::to_string(m_stat_nan * total));
-        Log(Info, "Number of Inf in get_albedo(): \"%s\" (\"%s\"\"%\")", std::to_string(m_stat_inf), std::to_string(m_stat_inf * total));
-        Log(Info, "Number of Normal in get_albedo(): \"%s\" (\"%s\"\"%\")", std::to_string(m_stat_normal), std::to_string(m_stat_normal * total));
+        Log(Info, "Number of NaN in get_albedo(): \"%s\" (\"%s\"\"%\")", m_stat_nan, m_stat_nan * total);
+        Log(Info, "Number of Inf in get_albedo(): \"%s\" (\"%s\"\"%\")", m_stat_inf, m_stat_inf * total);
+        Log(Info, "Number of Normal in get_albedo(): \"%s\" (\"%s\"\"%\")", m_stat_normal), m_stat_normal * total);
     }*/
 
     MTS_DECLARE_CLASS()
@@ -424,13 +476,13 @@ private:
     //ScalarFloat m_scale;
     ref<PhaseFunction> m_molecular_phase_function, m_aerosol_phase_function;
 
-    ScalarBoundingBox3f m_aabb;
+    BoundingBox3f m_aabb;
     //ScalarFloat m_max_density;
 
 
     int m_D;
     // Molecular description
-    StandardAtmosphere::StandardAtmosphere<Float> m_standardAtmosphere;
+    StandardAtmosphere::StandardAtmosphere<Float, UInt32, Mask> m_standardAtmosphere;
     // Aerosol description
     std::shared_ptr<GlobalAerosolModel<Float, Spectrum, Wavelength>> m_AerosolModel;
 
@@ -461,7 +513,7 @@ private:
     // Float m_T; // Turbicity
 
     // Total atmosphere values
-    ScalarFloat m_max_extinction;
+    Float m_max_extinction;
 };
 
 MTS_IMPLEMENT_CLASS_VARIANT(AtmosphereMedium, Medium)

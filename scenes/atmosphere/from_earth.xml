@@ -17,7 +17,7 @@
     <!-- Render with 128 samples per pixel using a basic
           independent sampling strategy -->
     <sampler type="independent">
-      <integer name="sample_count" value="8"/>
+      <integer name="sample_count" value="2"/>
     </sampler>
 
     <!-- Generate an EXR image at FHD resolution -->
@@ -66,6 +66,8 @@
     <point name="center" x="0" y="0" z="0"/>
     
     <bsdf type="null"/>
+      
+    <ref id="atmosphere" name="interior"/>
   </shape>
   
   <shape type="sphere">
