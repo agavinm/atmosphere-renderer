@@ -97,8 +97,7 @@ namespace RayleighScattering {
 	// [1] A. Bucholtz 1995. Rayleigh-scattering calculations for the terrestrial atmosphere. Applied
 	//	   Optics, Vol. 34(15).
 	//	   http://augerlal.lal.in2p3.fr/pmwiki/uploads/Bucholtz.pdf
-    template <typename Spectrum>
-    Spectrum get_cross_section() {
+    float get_cross_section() {
         return Utils::max(ScatteringCrossSection[2]);
     }
 
@@ -113,8 +112,7 @@ namespace RayleighScattering {
         return s;
 	}
 
-    template <typename Spectrum>
-    Spectrum get_ozone_cross_section() {
+    float get_ozone_cross_section() {
         const float ozone_cross_sections[4] = {Utils::max(ozoneUVcrossSection[1]),
                                          Utils::max(ozoneNearCrossSection[1]),
                                          Utils::max(ozoneVisibleCrossSection[1]),
@@ -125,7 +123,7 @@ namespace RayleighScattering {
                 result = ozone_cross_sections[i];
         }
 
-        return Spectrum(result);
+        return result;
     }
 
     template <typename Float, typename UInt32, typename Mask, typename Spectrum, typename Wavelength>

@@ -22,7 +22,7 @@ public:
     MTS_IMPORT_BASE(PhaseFunction, m_flags)
     MTS_IMPORT_TYPES(PhaseFunctionContext)
 
-    ChandrasekharPhaseFunction(const Properties &props) : Base(props), m_constant(Float(3) / (Float(16) * Float(M_PI))) {
+    ChandrasekharPhaseFunction(const Properties &props) : Base(props), m_constant(ScalarFloat(3) / (ScalarFloat(16) * ScalarFloat(M_PI))) {
         m_flags = +PhaseFunctionFlags::Anisotropic;
     }
 
@@ -57,7 +57,7 @@ public:
 
     MTS_DECLARE_CLASS()
 private:
-    const Float m_constant;
+    const ScalarFloat m_constant;
 };
 
 MTS_IMPLEMENT_CLASS_VARIANT(ChandrasekharPhaseFunction, PhaseFunction)

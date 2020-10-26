@@ -103,7 +103,7 @@ public:
 	}
 
 	// Returns the number of density in m^-3 for the input altitude z (in km).
-	Float get_number_density(const Float &z) const {
+    static Float get_number_density(const Float &z) {
 		const Float T_0 = 273.15; //in K
         const Float P_0 = 101.325; // in kPa
 

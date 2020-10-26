@@ -34,6 +34,9 @@ MTS_VARIANT Medium<Float, Spectrum>::Medium(const Properties &props, const bool 
                 Throw("Phase function can not be specified in atmosphere medium");
             }
         }
+        // Create a default Chandrasekhar phase function
+        m_phase_function =
+                PluginManager::instance()->create_object<PhaseFunction>(Properties("cha"));
     }
 
     m_sample_emitters = props.bool_("sample_emitters", true);

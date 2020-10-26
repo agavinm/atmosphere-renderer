@@ -17,13 +17,13 @@
     <!-- Render with 128 samples per pixel using a basic
           independent sampling strategy -->
     <sampler type="independent">
-      <integer name="sample_count" value="2"/>
+      <integer name="sample_count" value="8"/>
     </sampler>
 
     <!-- Generate an EXR image at FHD resolution -->
     <film type="hdrfilm">
-      <integer name="width" value="192"/>
-      <integer name="height" value="108"/>
+      <integer name="width" value="19"/>
+      <integer name="height" value="10"/>
     </film>
   </sensor>
   

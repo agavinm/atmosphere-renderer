@@ -5,30 +5,6 @@
 
 namespace Utils {
 
-/*template <typename Float>
-size_t get_low(const std::vector<float> &keys, const Float &x) {
-    size_t index = 0;
-    size_t begining = 0;
-    size_t ending = keys.size() - 1;
-
-    while (true) {
-        index = begining + (ending - begining) / 2;
-        if (keys[index] <= x && keys[index+1] >= x) {
-            return index; // That's the index that i'm looking for!
-        }
-
-        else {
-            // Dicotomic search
-            if (x > keys[index]) {
-                begining = index;
-            }
-            else {
-                ending = index;
-            }
-        }
-    }
-}*/
-
 template <typename Float, typename UInt32, typename Mask>
 UInt32 get_low(const std::vector<float> &keys, const Float &x) {
     UInt32 index = 0;
@@ -67,17 +43,32 @@ UInt32 get_low(const std::vector<float> &keys, const Float &x) {
     return index;
 }
 
+size_t get_low(const std::vector<float> &keys, const float &x) {
+    size_t index = 0;
+    size_t begining = 0;
+    size_t ending = keys.size() - 1;
+
+    while (true) {
+        index = begining + (ending - begining) / 2;
+        if (keys[index] <= x && keys[index+1] >= x) {
+            return index; // That's the index that i'm looking for!
+        }
+
+        else {
+            // Dicotomic search
+            if (x > keys[index]) {
+                begining = index;
+            }
+            else {
+                ending = index;
+            }
+        }
+    }
+}
+
 template <typename Float, typename UInt32, typename Mask>
 Float interpolate(const std::vector<float> &keys, const std::vector<float> &values, const Float &x) {
-    //size_t idx = get_low(keys, x);
-    //Float weight = (x - keys[idx]) / (keys[idx + 1] - keys[idx]);
-    //Float finalResult = (Float(1.) - weight)*values[idx] + weight*values[idx + 1];
-    /*std::cout << "1" << std::endl;
-    std::cout << "x = " << x << std::endl;
-    std::cout << "size = " << values.size() << std::endl;
-    std::cout << "first = " << values[0] << std::endl;
-    std::cout << "last = " << values[values.size() - 1] << std::endl;*/
-    UInt32 idx = get_low<Float, UInt32, Mask>(keys, x);
+    const UInt32 idx = get_low<Float, UInt32, Mask>(keys, x);
 
     const Float keys_idx = enoki::gather<Float>(keys.data(), idx);
     const Float weight = (x - keys_idx) / (enoki::gather<Float>(keys.data(), idx + 1) - keys_idx);
@@ -90,6 +81,21 @@ Float interpolate(const std::vector<float> &keys, const std::vector<float> &valu
                     (Float(1.) - weight) * enoki::gather<Float>(values.data(), idx) + weight * enoki::gather<Float>(values.data(), idx + 1) // Is valid
                     )
             );
+
+    return finalResult;
+}
+
+template <typename Float = float, typename, typename>
+float interpolate(const std::vector<float> &keys, const std::vector<float> &values, const float &x) {
+    if (x < keys[0])
+        return values[0];
+
+    if (x >= keys.at(keys.size()-1))
+        return values[keys.size() - 1];
+
+    const size_t idx = get_low(keys, x);
+    const float weight = (x - keys[idx]) / (keys[idx + 1] - keys[idx]);
+    const float finalResult = (1.f - weight) * values[idx] + weight * values[idx + 1];
 
     return finalResult;
 }
