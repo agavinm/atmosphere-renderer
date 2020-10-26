@@ -43,7 +43,7 @@
     <float name="radius" value="6.371"/>
 
     <bsdf type="diffuse">
-      <rgb name="reflectance" value="0.001, 0.001, 0.001"/>
+      <rgb name="reflectance" value="0, 0, 0"/>
     </bsdf>
   </shape>
   

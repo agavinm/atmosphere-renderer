@@ -131,38 +131,75 @@ namespace RayleighScattering {
         Spectrum s(0.);
 
         for (size_t i = 0; i < wl.Size; i++) {
-            s[i] = enoki::select(
-                    wl[i] >= Float(244) && wl[i] <= Float(302),
-                    Utils::interpolate<Float, UInt32, Mask>(ozoneUVcrossSection[0], ozoneUVcrossSection[1], wl[i]),
-                    enoki::select(
-                            wl[i] > Float(302) && wl[i] < Float(365),
+            Mask available = wl[i] >= Float(244) && wl[i] <= Float(1046);
+
+            if (enoki::any(available)) {
+                s[i] = enoki::select(
+                        available && wl[i] <= Float(302),
+                        Utils::interpolate<Float, UInt32, Mask>(ozoneUVcrossSection[0], ozoneUVcrossSection[1], wl[i]),
+                        s[i]
+                );
+                available = available && wl[i] > Float(302);
+
+                if (enoki::any(available)) {
+                    s[i] = enoki::select(
+                            available && wl[i] < Float(365),
                             Utils::fast_interpolate<Float>(ozoneUVcrossSection[0][6], ozoneNearCrossSection[0][0], wl[i],
                                                            ozoneUVcrossSection[1][6], ozoneNearCrossSection[1][0]),
-                            enoki::select(
-                                    wl[i] >= Float(365) && wl[i] <= Float(455),
-                                    Utils::interpolate<Float, UInt32, Mask>(ozoneNearCrossSection[0], ozoneNearCrossSection[1], wl[i]),
-                                    enoki::select(
-                                            wl[i] > Float(455) && wl[i] < Float(543),
-                                            Utils::fast_interpolate<Float>(ozoneNearCrossSection[0][2], ozoneVisibleCrossSection[0][0], wl[i],
-                                                                           ozoneNearCrossSection[1][2], ozoneVisibleCrossSection[1][0]),
-                                            enoki::select(
-                                                    wl[i] >= Float(543) && wl[i] <= Float(632),
-                                                    Utils::interpolate<Float, UInt32, Mask>(ozoneVisibleCrossSection[0], ozoneVisibleCrossSection[1], wl[i]),
-                                                    enoki::select(
-                                                            wl[i] > Float(632) && wl[i] < Float(748),
-                                                            Utils::fast_interpolate<Float>(ozoneVisibleCrossSection[0][5], ozoneNIRCrossSection[0][0], wl[i],
-                                                                                           ozoneVisibleCrossSection[1][5], ozoneNIRCrossSection[1][0]),
-                                                            enoki::select(
-                                                                    wl[i] >= Float(748) && wl[i] <= Float(1046),
-                                                                    Utils::interpolate<Float, UInt32, Mask>(ozoneNIRCrossSection[0], ozoneNIRCrossSection[1], wl[i]),
-                                                                    Float(0.)
-                                                            )
-                                                    )
-                                            )
-                                    )
-                            )
-                    )
-            );
+                            s[i]
+                    );
+                    available = available && wl[i] >= Float(365);
+
+                    if (enoki::any(available)) {
+                        s[i] = enoki::select(
+                                available && wl[i] <= Float(455),
+                                Utils::interpolate<Float, UInt32, Mask>(ozoneNearCrossSection[0], ozoneNearCrossSection[1], wl[i]),
+                                s[i]
+                        );
+                        available = available && wl[i] > Float(455);
+
+                        if (enoki::any(available)) {
+                            s[i] = enoki::select(
+                                    available && wl[i] < Float(543),
+                                    Utils::fast_interpolate<Float>(ozoneNearCrossSection[0][2], ozoneVisibleCrossSection[0][0], wl[i],
+                                                                   ozoneNearCrossSection[1][2], ozoneVisibleCrossSection[1][0]),
+                                    s[i]
+                            );
+                            available = available && wl[i] >= Float(543);
+
+                            if (enoki::any(available)) {
+                                s[i] = enoki::select(
+                                        available && wl[i] <= Float(632),
+                                        Utils::interpolate<Float, UInt32, Mask>(ozoneVisibleCrossSection[0], ozoneVisibleCrossSection[1],
+                                                                                wl[i]),
+                                        s[i]
+                                );
+                                available = available && wl[i] > Float(632);
+
+                                if (enoki::any(available)) {
+                                    s[i] = enoki::select(
+                                            available && wl[i] < Float(748),
+                                            Utils::fast_interpolate<Float>(ozoneVisibleCrossSection[0][5], ozoneNIRCrossSection[0][0],
+                                                                           wl[i],
+                                                                           ozoneVisibleCrossSection[1][5], ozoneNIRCrossSection[1][0]),
+                                            s[i]
+                                    );
+                                    available = available && wl[i] >= Float(748);
+
+                                    if (enoki::any(available)) {
+                                        s[i] = enoki::select(
+                                                available,
+                                                Utils::interpolate<Float, UInt32, Mask>(ozoneNIRCrossSection[0], ozoneNIRCrossSection[1],
+                                                                                        wl[i]),
+                                                s[i]
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         return s;

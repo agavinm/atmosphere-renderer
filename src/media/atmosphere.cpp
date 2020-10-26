@@ -116,7 +116,7 @@ public:
 
             extinction = get_max_extinction(p);
 
-            if (all(extinction > m_max_extinction)) {
+            if (enoki::all(extinction > m_max_extinction)) {
                 m_max_extinction = extinction;
             }
         }
@@ -181,22 +181,26 @@ public:
         // After:
         auto p = worldToLocal.transform_affine(mi.p);
         const Mask out_of_medium = is_out_of_medium(p);
-        UnpolarizedSpectrum sigmas = enoki::select(
-                out_of_medium,
-                Spectrum(0.),
-                get_scattering(p, mi.wavelengths)
-        );
-        UnpolarizedSpectrum sigmat = enoki::select(
-                out_of_medium,
-                Spectrum(0.),
-                get_absorption(p, mi.wavelengths) + sigmas
-        );
+        auto sigmas = UnpolarizedSpectrum(0.);
+        auto sigmat = UnpolarizedSpectrum(0.);
+        if (!enoki::all(out_of_medium)) {
+            sigmas = enoki::select(
+                    out_of_medium,
+                    Spectrum(0.),
+                    get_scattering(p, mi.wavelengths)
+            );
+            sigmat = enoki::select(
+                    out_of_medium,
+                    Spectrum(0.),
+                    get_absorption(p, mi.wavelengths) + sigmas
+            );
+        }
         //UnpolarizedSpectrum sigman = 0.f;
 
         // Before:
         //auto sigmat = m_scale * m_sigmat->eval(mi, active); // TODO: Use correct sigma_t
         //auto sigmas = sigmat * get_albedo(worldToLocal.transform_affine(mi.p), mi.wavelengths); // TODO: 0 is first wavelength, select the correct wavelength
-        auto sigman = get_combined_extinction(mi, active) - sigmat;
+        const auto sigman = get_combined_extinction(mi, active) - sigmat;
 
         /*Log(Info, "p \"%s\"", p);
         Log(Info, "Sigma_t \"%s\"", sigmat);
@@ -270,7 +274,7 @@ public:
 
         // Russian roulette
         PCG32<ScalarFloat> m_random_generator;
-        if (all(m_random_generator.next_float32() < enoki::hmean(rayleigh_scattering_prob)))
+        if (enoki::all(m_random_generator.next_float32() < enoki::hmean(rayleigh_scattering_prob)))
             return m_phase_function.get(); // P(molecular) = [0, rayleigh_scattering_prob) //TODO: Use all wl
         else
             return m_aerosol_phase_function.get(); // P(aerosol) = [rayleigh_scattering_prob,  1) //TODO: Use all wl
@@ -321,7 +325,7 @@ public:
     }
 
     ScalarFloat get_max_extinction(const ScalarVector3f &p) const {
-        if (all(is_out_of_medium(p)))
+        if (enoki::all(is_out_of_medium(p)))
             return ScalarFloat(0.);
 
         // get_height
