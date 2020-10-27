@@ -43,6 +43,12 @@ public:
             throw("Invalid dimension D for 'AtmosphereMedium'");*/
 
         // Phase functions
+        std::string molecular_phase_function = props.string("molecular_phase_function", "cha");
+        if (molecular_phase_function != "rayleigh")
+            m_phase_function = PluginManager::instance()->create_object<PhaseFunction>(Properties("cha"));
+        else
+            m_phase_function = PluginManager::instance()->create_object<PhaseFunction>(Properties("rayleigh"));
+
         Properties hg("hg");
         hg.set_float("g", 0.76f);
         m_aerosol_phase_function = PluginManager::instance()->create_object<PhaseFunction>(hg);
