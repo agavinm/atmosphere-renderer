@@ -1,3 +1,5 @@
+<!-- El Sol está alineado con el polo norte y la cámara está 1km por encima del p.n. -->
+
 <scene version="2.2.1">
   <integrator type="volpath">
     <!-- Instantiate a path tracer with a max. path length of 8 -->
@@ -22,8 +24,8 @@
 
     <!-- Generate an EXR image at FHD resolution -->
     <film type="hdrfilm">
-      <integer name="width" value="19"/>
-      <integer name="height" value="10"/>
+      <integer name="width" value="320"/>
+      <integer name="height" value="240"/>
     </film>
   </sensor>
   
@@ -32,10 +34,10 @@
   <!-- Sun -->
   <shape type="sphere">
     <float name="radius" value="696340"/>
-    <point name="center" x="0" y="148432926.919" z="18633011.6798"/> <!-- Distance = 149597870700 meters -->
+    <point name="center" x="0" y="149597870.564" z="6371"/> <!-- Distance = 149597870700 meters -->
     
     <emitter type="area">
-      <spectrum name="radiance" value="154000"/> <!-- 15400000 W per square metre per steradian ?? -->
+      <spectrum name="radiance" value="770000"/> <!-- 15400000 W per square metre per steradian ?? -->
     </emitter>
   </shape>
   
@@ -66,7 +68,7 @@
     <point name="center" x="0" y="0" z="0"/>
     
     <bsdf type="null"/>
-      
+    
     <ref id="atmosphere" name="interior"/>
   </shape>
   
