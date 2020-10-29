@@ -42,7 +42,7 @@ public:
         Spectrum result = 0.;
 
         for (size_t i = 0; i < result.Size; i++) {
-            const auto gamma = RayleighScattering::gamma<Float, UInt32, Mask>(mi.wavelengths[i]);
+            const auto gamma = m_rayleighScattering.gamma<Float, UInt32, Mask>(mi.wavelengths[i]);
 
             const auto cosine = dot(wo, mi.wi);
             result[i] = (m_constant / (Float(1) + Float(2) * gamma)) *
@@ -57,6 +57,7 @@ public:
     MTS_DECLARE_CLASS()
 private:
     const ScalarFloat m_constant;
+    const RayleighScattering::RayleighScattering m_rayleighScattering;
 };
 
 MTS_IMPLEMENT_CLASS_VARIANT(ChandrasekharPhaseFunction, PhaseFunction)
