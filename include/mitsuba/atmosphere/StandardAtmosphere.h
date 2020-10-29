@@ -78,7 +78,7 @@ namespace StandardAtmosphere {
     //		http://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/19770009539.pdf
     //
     class StandardAtmosphere {
-        std::array<std::array<float, 56>, 12> m_robson_ozone;
+        std::array<std::array<float, 56>, 12> m_robson_ozone{};
 
     public:
         StandardAtmosphere() {

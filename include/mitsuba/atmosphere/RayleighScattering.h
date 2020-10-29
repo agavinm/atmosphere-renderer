@@ -67,9 +67,9 @@ namespace RayleighScattering {
           std::array<float, 16>{ 4.38e-22,3.22e-22,2.77e-22,2.53e-22,2.49e-22,3.15e-22, 1.45e-22,2.20e-22,1.46e-22,0.377e-22, 0.510e-22,0.638e-22, 0.162e-22,0.424e-22,0.407e-22,0.0773e-22 } };
 
     class RayleighScattering {
-        std::array<float, 1001> m_gamma;
-        std::array<float, 4001> m_cross_section;
-        std::array<float, 1047> m_ozone_cross_section;
+        std::array<float, 1001> m_gamma{};
+        std::array<float, 4001> m_cross_section{};
+        std::array<float, 1047> m_ozone_cross_section{};
         float m_max_gamma, m_max_cross_section, m_max_ozone_cross_section;
 
     public:

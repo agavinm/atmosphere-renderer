@@ -1,6 +1,9 @@
 #ifndef _GLOBAL_ATMOSPHERIC_AEROSOL_H_
 #define _GLOBAL_ATMOSPHERIC_AEROSOL_H_
 
+#include <array>
+#include <mitsuba/atmosphere/Utils.h>
+
 // This class models the Global Aerosol Model described in [1], that
 // describes the distribution of aerosol in the atmosphere.
 //
@@ -9,16 +12,74 @@
 //		http://www.spacewx.com/Docs/AIAA-656-598.pdf
 
 
-template <typename Float, typename Spectrum, typename Wavelength>
+template <typename Float, typename UInt32, typename Mask, typename Spectrum, typename Wavelength>
 class GlobalAerosolModel {
-public:
+private:
+    std::array<float, 100001> m_absorption{}, m_scattering{};
+    float m_max_absorption, m_max_scattering;
 
-    virtual float get_scattering() const = 0;
-    virtual Spectrum get_scattering(const Wavelength &wl) const = 0;
-    virtual float get_absorption() const = 0;
-    virtual Spectrum get_absorption(const Wavelength &wl) const = 0;
-	virtual Float get_density(Float z) const = 0;
-    virtual float get_density_float(float z) const = 0;
+protected:
+    explicit GlobalAerosolModel(const std::array<std::array<float, 1001>, 3> &tabulatedValues) {
+        m_max_absorption = tabulatedValues[1][0];
+        m_max_scattering = tabulatedValues[2][0];
+        for (size_t wl = 0; wl <= tabulatedValues[0][0] * 100; wl++) {
+            m_absorption[wl] = tabulatedValues[1][0];
+            m_scattering[wl] = tabulatedValues[2][0];
+        }
+
+        for (size_t i = 1; i < tabulatedValues[0].size(); i++) {
+            if (tabulatedValues[1][i] > m_max_absorption)
+                m_max_absorption = tabulatedValues[1][i];
+            if (tabulatedValues[2][i] > m_max_scattering)
+                m_max_scattering = tabulatedValues[2][i];
+
+            for (size_t wl = tabulatedValues[0][i - 1] * 100.f + 1; wl < tabulatedValues[0][i] * 100.f; wl++) {
+                m_absorption[wl] = Utils::fast_interpolate<float>(tabulatedValues[0][i - 1],
+                                                                  tabulatedValues[0][i],
+                                                                  wl,
+                                                                  tabulatedValues[1][i - 1],
+                                                                  tabulatedValues[1][i]);
+                m_scattering[wl] = Utils::fast_interpolate<float>(tabulatedValues[0][i - 1],
+                                                                  tabulatedValues[0][i],
+                                                                  wl,
+                                                                  tabulatedValues[2][i - 1],
+                                                                  tabulatedValues[2][i]);
+            }
+            m_absorption[tabulatedValues[0][i]] = tabulatedValues[1][i];
+            m_scattering[tabulatedValues[0][i]] = tabulatedValues[2][i];
+        }
+    }
+
+public:
+    [[nodiscard]] float get_absorption() const {
+        return m_max_absorption;
+    }
+
+    Spectrum get_absorption(const Wavelength &wl) const {
+        Spectrum s(0.);
+
+        for (size_t i = 0; i < wl.Size; i++)
+            s[i] = Utils::get_<Float, UInt32, Mask>(wl[i], m_absorption);
+
+        return s;
+    }
+
+    [[nodiscard]] float get_scattering() const {
+        return m_max_scattering;
+    }
+
+    Spectrum get_scattering(const Wavelength &wl) const {
+        Spectrum s(0.);
+
+        for (size_t i = 0; i < wl.Size; i++)
+            s[i] = Utils::get_<Float, UInt32, Mask>(wl[i], m_scattering);
+
+        return s;
+    }
+
+	virtual Float get_density(const Float &z) const = 0;
+
+    [[nodiscard]] virtual float get_density_float(const float &z) const = 0;
 }; //GlobalAerosolModel
 
 #endif //_ATMOSPHERIC_AEROSOL_H_

@@ -1,7 +1,7 @@
 #include <enoki/stl.h>
 
 #include <memory>
-/*#include <mitsuba/atmosphere/Aerosol/BackgroundAerosol.h>
+#include <mitsuba/atmosphere/Aerosol/BackgroundAerosol.h>
 #include <mitsuba/atmosphere/Aerosol/DesertDustAerosol.h>
 #include <mitsuba/atmosphere/Aerosol/MaritimeCleanAerosol.h>
 #include <mitsuba/atmosphere/Aerosol/MaritimeMineralAerosol.h>
@@ -9,7 +9,7 @@
 #include <mitsuba/atmosphere/Aerosol/PolarArticAerosol.h>
 #include <mitsuba/atmosphere/Aerosol/RemoteContinentalAerosol.h>
 #include <mitsuba/atmosphere/Aerosol/RuralAerosol.h>
-#include <mitsuba/atmosphere/Aerosol/UrbanAerosol.h>*/
+#include <mitsuba/atmosphere/Aerosol/UrbanAerosol.h>
 #include <mitsuba/atmosphere/GlobalAtmosphericAerosol.h>
 #include <mitsuba/atmosphere/RayleighScattering.h>
 #include <mitsuba/atmosphere/StandardAtmosphere.h>
@@ -31,13 +31,17 @@ NAMESPACE_BEGIN(mitsuba)
 // Statistics
 //static long long m_stat_nan = 0, m_stat_inf = 0, m_stat_normal = 0;
 
+// Random
+template<typename ScalarFloat>
+PCG32<ScalarFloat> m_random_generator; // TODO: First value is always the same
+
 template <typename Float, typename Spectrum>
 class AtmosphereMedium final : public Medium<Float, Spectrum> {
 public:
     MTS_IMPORT_BASE(Medium, m_phase_function, m_is_homogeneous, m_has_spectral_extinction)
     MTS_IMPORT_TYPES(PhaseFunction, Volume)
 
-    AtmosphereMedium(const Properties &props) : Base(props, true), m_lat(45.), m_up(0.,1.,0.) {
+    explicit AtmosphereMedium(const Properties &props) : Base(props, true), m_lat(45.), m_up(0.,1.,0.) {
         /*m_D = props.int_("D", 3);
         if(m_D>3 || m_D<2)
             Throw("Invalid dimension D for 'AtmosphereMedium'");*/
@@ -59,26 +63,26 @@ public:
         m_month--;
 
         // Aerosol model
-        /*std::string aerosolModel = props.string("aerosol_model", "");
+        std::string aerosolModel = props.string("aerosol_model", "");
         if (aerosolModel == "BackgroundAerosol")
-            m_AerosolModel = std::make_shared<backgroundAerosol::BackgroundAerosol<Float, Spectrum, Wavelength>>();
+            m_AerosolModel = std::make_shared<backgroundAerosol::BackgroundAerosol<Float, UInt32, Mask, Spectrum, Wavelength>>();
         else if (aerosolModel == "DesertDustAerosol")
-            m_AerosolModel = std::make_shared<desertDustAerosol::DesertDustAerosol<Float, Spectrum, Wavelength>>();
+            m_AerosolModel = std::make_shared<desertDustAerosol::DesertDustAerosol<Float, UInt32, Mask, Spectrum, Wavelength>>();
         else if (aerosolModel == "MaritimeCleanAerosol")
-            m_AerosolModel = std::make_shared<maritimeCleanAerosol::MaritimeCleanAerosol<Float, Spectrum, Wavelength>>();
+            m_AerosolModel = std::make_shared<maritimeCleanAerosol::MaritimeCleanAerosol<Float, UInt32, Mask, Spectrum, Wavelength>>();
         else if (aerosolModel == "MaritimeMineralAerosol")
-            m_AerosolModel = std::make_shared<maritimeMineralAerosol::MaritimeMineralAerosol<Float, Spectrum, Wavelength>>();
+            m_AerosolModel = std::make_shared<maritimeMineralAerosol::MaritimeMineralAerosol<Float, UInt32, Mask, Spectrum, Wavelength>>();
         else if (aerosolModel == "PolarAntarticAerosol")
-            m_AerosolModel = std::make_shared<polarAntarticAerosol::PolarAntarticAerosol<Float, Spectrum, Wavelength>>();
+            m_AerosolModel = std::make_shared<polarAntarticAerosol::PolarAntarticAerosol<Float, UInt32, Mask, Spectrum, Wavelength>>();
         else if (aerosolModel == "PolarArticAerosol")
-            m_AerosolModel = std::make_shared<polarArticAerosol::PolarArticAerosol<Float, Spectrum, Wavelength>>();
+            m_AerosolModel = std::make_shared<polarArticAerosol::PolarArticAerosol<Float, UInt32, Mask, Spectrum, Wavelength>>();
         else if (aerosolModel == "RemoteContinentalAerosol")
-            m_AerosolModel = std::make_shared<remoteContinentalAerosol::RemoteContinentalAerosol<Float, Spectrum, Wavelength>>();
+            m_AerosolModel = std::make_shared<remoteContinentalAerosol::RemoteContinentalAerosol<Float, UInt32, Mask, Spectrum, Wavelength>>();
         else if (aerosolModel == "RuralAerosol")
-            m_AerosolModel = std::make_shared<ruralAerosol::RuralAerosol<Float, Spectrum, Wavelength>>();
+            m_AerosolModel = std::make_shared<ruralAerosol::RuralAerosol<Float, UInt32, Mask, Spectrum, Wavelength>>();
         else if (aerosolModel == "UrbanAerosol")
-            m_AerosolModel = std::make_shared<urbanAerosol::UrbanAerosol<Float, Spectrum, Wavelength>>();
-        else*/
+            m_AerosolModel = std::make_shared<urbanAerosol::UrbanAerosol<Float, UInt32, Mask, Spectrum, Wavelength>>();
+        else
             m_AerosolModel = nullptr;
 
         m_is_homogeneous = false;
@@ -92,7 +96,7 @@ public:
         //m_max_density = m_scale * m_sigmat->max();
         //m_aabb        = m_sigmat->bbox();
 
-        m_earth_radius = props.float_("earth_radius_km");
+        m_earth_radius = props.float_("earth_radius");
         Log(LOG_MODE, "Initialized Earth with \"%s\" radius.", m_earth_radius);
 
         m_earth_scale = ScalarFloat(6356.766) / m_earth_radius;
@@ -278,8 +282,9 @@ public:
         //Log(Info, "rayleigh_scattering_prob = \"%s\"; aerosol_scattering_prob = \"%s\"", rayleigh_scattering_prob, aerosol_scattering_prob);
 
         // Russian roulette
-        PCG32<ScalarFloat> m_random_generator;
-        if (m_random_generator.next_float32() < rayleigh_scattering_prob)
+
+        Log(Info, "rayleigh_scattering_prob = \"%s\"; random = \"%s\"", rayleigh_scattering_prob, m_random_generator<ScalarFloat>.next_float32());
+        if (m_random_generator<ScalarFloat>.next_float32() < rayleigh_scattering_prob)
             return m_phase_function.get(); // P(molecular) = [0, rayleigh_scattering_prob)
         else
             return m_aerosol_phase_function.get(); // P(aerosol) = [rayleigh_scattering_prob,  1) //TODO: Use all wl
@@ -460,7 +465,7 @@ private:
     const StandardAtmosphere::StandardAtmosphere m_standardAtmosphere;
     const RayleighScattering::RayleighScattering m_rayleighScattering;
     // Aerosol description
-    std::shared_ptr<GlobalAerosolModel<Float, Spectrum, Wavelength>> m_AerosolModel;
+    std::shared_ptr<GlobalAerosolModel<Float, UInt32, Mask, Spectrum, Wavelength>> m_AerosolModel{};
 
     // Sun description (probably useless)
     //Float m_sun_phi, m_sun_thita;
