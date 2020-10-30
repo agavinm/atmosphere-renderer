@@ -51,7 +51,7 @@
     <!-- Parametres -->
     <float name="earth_radius" value="6371"/>
     <point name="earth_center" x="0" y="0" z="0"/>
-    <string name="aerosol_model" value="PolarArticAerosol"/>
+    <!-- <string name="aerosol_model" value="PolarArticAerosol"/>-->
   </medium>
 
   <!-- Earth -->

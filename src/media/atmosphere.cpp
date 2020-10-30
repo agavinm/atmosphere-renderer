@@ -23,6 +23,7 @@
 #include <mitsuba/render/scene.h>
 #include <mitsuba/render/texture.h>
 #include <mitsuba/render/phase.h>
+#include <random>
 
 NAMESPACE_BEGIN(mitsuba)
 
@@ -32,8 +33,9 @@ NAMESPACE_BEGIN(mitsuba)
 //static long long m_stat_nan = 0, m_stat_inf = 0, m_stat_normal = 0;
 
 // Random
+static thread_local std::random_device rd;
 template<typename ScalarFloat>
-PCG32<ScalarFloat> m_random_generator; // TODO: First value is always the same
+static thread_local PCG32<ScalarFloat> m_random_generator(rd());
 
 template <typename Float, typename Spectrum>
 class AtmosphereMedium final : public Medium<Float, Spectrum> {
@@ -171,6 +173,8 @@ public:
         Log(Info, "random1 = \"%s\"", m_random_generator.next_float32());
         Log(Info, "random2 = \"%s\"", m_random_generator.next_float32());
         Log(Info, "random3 = \"%s\"", m_random_generator.next_float32());*/
+
+        //Log(Info, "random = \"%s\"", m_random_generator<ScalarFloat>.next_float32());
     }
 
     UnpolarizedSpectrum
@@ -283,7 +287,7 @@ public:
 
         // Russian roulette
 
-        Log(Info, "rayleigh_scattering_prob = \"%s\"; random = \"%s\"", rayleigh_scattering_prob, m_random_generator<ScalarFloat>.next_float32());
+        //Log(Info, "rayleigh_scattering_prob = \"%s\"; random = \"%s\"", rayleigh_scattering_prob, m_random_generator<ScalarFloat>.next_float32());
         if (m_random_generator<ScalarFloat>.next_float32() < rayleigh_scattering_prob)
             return m_phase_function.get(); // P(molecular) = [0, rayleigh_scattering_prob)
         else
@@ -418,7 +422,7 @@ public:
     Spectrum get_aerosol_absorption(const Vector3f &p, const Wavelength &wl) const {
         const Float h = get_height(p);
 
-        const Spectrum cross_section = m_AerosolModel->get_absorption(wl);
+        const Spectrum cross_section = m_AerosolModel->get_absorption(wl) * Float(1e-10); // TODO: Check units
 
         const Float density = m_AerosolModel->get_density(h);
 
@@ -440,7 +444,7 @@ public:
 
         //Log(Info, "get_aerosol_scattering = \"%s\"", final_result);
 
-        return final_result;
+        return final_result * 1e-1; // TODO: Check units
     }
 
     /*~AtmosphereMedium() {

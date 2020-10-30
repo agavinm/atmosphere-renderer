@@ -14,7 +14,7 @@
 
 template <typename Float, typename UInt32, typename Mask, typename Spectrum, typename Wavelength>
 class GlobalAerosolModel {
-private:
+public:
     std::array<float, 100001> m_absorption{}, m_scattering{};
     float m_max_absorption, m_max_scattering;
 
@@ -34,19 +34,19 @@ protected:
                 m_max_scattering = tabulatedValues[2][i];
 
             for (size_t wl = tabulatedValues[0][i - 1] * 100.f + 1; wl < tabulatedValues[0][i] * 100.f; wl++) {
-                m_absorption[wl] = Utils::fast_interpolate<float>(tabulatedValues[0][i - 1],
-                                                                  tabulatedValues[0][i],
+                m_absorption[wl] = Utils::fast_interpolate<float>(tabulatedValues[0][i - 1] * 100.f,
+                                                                  tabulatedValues[0][i] * 100.f,
                                                                   wl,
                                                                   tabulatedValues[1][i - 1],
                                                                   tabulatedValues[1][i]);
-                m_scattering[wl] = Utils::fast_interpolate<float>(tabulatedValues[0][i - 1],
-                                                                  tabulatedValues[0][i],
+                m_scattering[wl] = Utils::fast_interpolate<float>(tabulatedValues[0][i - 1] * 100.f,
+                                                                  tabulatedValues[0][i] * 100.f,
                                                                   wl,
                                                                   tabulatedValues[2][i - 1],
                                                                   tabulatedValues[2][i]);
             }
-            m_absorption[tabulatedValues[0][i]] = tabulatedValues[1][i];
-            m_scattering[tabulatedValues[0][i]] = tabulatedValues[2][i];
+            m_absorption[size_t(tabulatedValues[0][i] * 100.f)] = tabulatedValues[1][i];
+            m_scattering[size_t(tabulatedValues[0][i] * 100.f)] = tabulatedValues[2][i];
         }
     }
 
@@ -59,7 +59,7 @@ public:
         Spectrum s(0.);
 
         for (size_t i = 0; i < wl.Size; i++)
-            s[i] = Utils::get_<Float, UInt32, Mask>(wl[i], m_absorption);
+            s[i] = Utils::get_<Float, UInt32, Mask>(wl[i] * Float(100.f), m_absorption);
 
         return s;
     }
@@ -72,7 +72,7 @@ public:
         Spectrum s(0.);
 
         for (size_t i = 0; i < wl.Size; i++)
-            s[i] = Utils::get_<Float, UInt32, Mask>(wl[i], m_scattering);
+            s[i] = Utils::get_<Float, UInt32, Mask>(wl[i] * Float(100.f), m_scattering);
 
         return s;
     }
