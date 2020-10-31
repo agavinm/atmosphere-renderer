@@ -20,7 +20,7 @@ namespace RayleighScattering {
          std::array<float, 36>{0.02326, 0.02241, 0.02156, 0.02100 ,0.02043, 0.01986, 0.01930, 0.01872, 0.01815, 0.01758, 0.01729, 0.01672, 0.01643, 0.01614, 0.01614, 0.01586, 0.01557, 0.01557, 0.01528, 0.01528, 0.01528, 0.01499, 0.01499, 0.01499, 0.01471, 0.01442, 0.01442, 0.01413, 0.01413, 0.01413, 0.01413, 0.01384, 0.01384, 0.01384, 0.01384, 0.01384}};
 
 	// Tabulated scattering cross section values for wavelengths from 200 to 4000 nm [1]. Row 2 stores
-	// the values measured in [1] (Table 2), while Row 1 stores the values obtained using the fitting 
+	// the values measured in [1] (Table 2) (cm2), while Row 1 stores the values obtained using the fitting
 	// described in [1], Eq. 8 with the values stored in [1], Table 3.
 	//
 	// [1] A. Bucholtz 1995. Rayleigh-scattering calculations for the terrestrial atmosphere. Applied

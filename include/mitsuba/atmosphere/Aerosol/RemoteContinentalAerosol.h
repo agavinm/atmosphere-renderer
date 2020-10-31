@@ -29,7 +29,17 @@ namespace remoteContinentalAerosol {
                                      pb_bd(pb / base_density) {}
 
         Float get_density(const Float &z) const override {
-            return Float(base_density) * (enoki::exp(-z / Float(Hp)) + Float(pb_bd));
+            const Mask msk = z >= Float(0) && z <= Float(86);
+            const Float height = enoki::select(
+                    msk,
+                    z,
+                    Float(0.f)
+            );
+            return enoki::select(
+                    msk,
+                    Float(base_density) * (enoki::exp(-height / Float(Hp)) + Float(pb_bd)),
+                    height
+            );
         }
 
         [[nodiscard]] float get_density_float(const float &z) const override {

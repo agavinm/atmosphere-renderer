@@ -1,9 +1,9 @@
-<!-- El Sol está sobre el horizonte y la cámara está 1km por encima del p.n. -->
+<!-- El Sol está alineado con el polo norte y la cámara está 1km por encima del p.n. y rotada 180º en el eje z -->
 
 <scene version="2.2.1">
   <integrator type="volpath">
     <!-- Instantiate a path tracer with a max. path length of 8 -->
-    <integer name="max_depth" value="8"/>
+    <integer name="max_depth" value="128"/>
   </integrator>
 
   <!-- Instantiate a perspective camera with 15 degrees field of view -->
@@ -11,6 +11,7 @@
     <transform name="to_world">
       <!-- Rotate the camera around the X axis by 90 degrees -->
       <rotate x="1" angle="90"/>
+      <rotate z="1" angle="180"/>
       <!-- Translate the camera 1000 meters above the ground at the north pole -->
       <translate x="0" y="0" z="6372"/>
     </transform>
@@ -18,8 +19,8 @@
 
     <!-- Render with 128 samples per pixel using a basic
           independent sampling strategy -->
-    <sampler type="independent">
-      <integer name="sample_count" value="8"/>
+    <sampler type="stratified">
+      <integer name="sample_count" value="36"/>
     </sampler>
 
     <!-- Generate an EXR image at FHD resolution -->
@@ -34,7 +35,7 @@
   <!-- Sun -->
   <shape type="sphere">
     <float name="radius" value="696340"/>
-    <point name="center" x="0" y="148432926.919" z="18633011.6798"/> <!-- Distance = 149597870700 meters -->
+    <point name="center" x="0" y="149597870.564" z="6371"/> <!-- Distance = 149597870700 meters -->
     
     <emitter type="area">
       <spectrum name="radiance" value="770000"/> <!-- 15400000 W per square metre per steradian ?? -->
@@ -48,9 +49,10 @@
   
   <medium type="atmosphere" id="atmosphere">
     <!-- Parametres -->
-    <float name="earth_radius" value="6371"/>
+    <float name="earth_radius_km" value="6371"/>
     <point name="earth_center" x="0" y="0" z="0"/>
-    <string name="aerosol_model" value="BackgroundAerosol"/>
+    <integer name="month" value="2"/>
+    <!-- <string name="aerosol_model" value="PolarArticAerosol"/>-->
   </medium>
 
   <!-- Earth -->
@@ -68,7 +70,7 @@
     <point name="center" x="0" y="0" z="0"/>
     
     <bsdf type="null"/>
-      
+    
     <ref id="atmosphere" name="interior"/>
   </shape>
   

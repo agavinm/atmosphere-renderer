@@ -281,8 +281,9 @@ public:
         if (total == ScalarFloat(0))
             return m_phase_function.get();
         const ScalarFloat rayleigh_scattering_prob = Utils::get_first<Float, ScalarFloat>(rayleigh_scattering[0]) / total;
+        //const ScalarFloat aerosol_scattering_prob = Utils::get_first<Float, ScalarFloat>(aerosol_scattering[0]) / total;
 
-        //Log(Info, "rayleigh_scattering = \"%s\"; aerosol_scattering = \"%s\"", rayleigh_scattering, aerosol_scattering);
+        //Log(Info, "rayleigh_scattering = \"%s\"; aerosol_scattering = \"%s\"", Utils::get_first<Float, ScalarFloat>(rayleigh_scattering[0]), Utils::get_first<Float, ScalarFloat>(aerosol_scattering[0]));
         //Log(Info, "rayleigh_scattering_prob = \"%s\"; aerosol_scattering_prob = \"%s\"", rayleigh_scattering_prob, aerosol_scattering_prob);
 
         // Russian roulette
@@ -292,7 +293,7 @@ public:
             return m_phase_function.get(); // P(molecular) = [0, rayleigh_scattering_prob)
         else
             return m_aerosol_phase_function.get(); // P(aerosol) = [rayleigh_scattering_prob,  1) //TODO: Use all wl
-    } // TODO: Check
+    }
 
     /**
      * Computes the geopotential height of a point p given in local coordinates.
@@ -371,6 +372,11 @@ public:
             return get_ozone_absorption(p, wl);
         else
             return get_ozone_absorption(p, wl) + get_aerosol_absorption(p, wl);
+        /*else {
+            auto ozone_absorption = get_ozone_absorption(p, wl), aerosol_absorption = get_aerosol_absorption(p, wl);
+            Log(Info, "ozone_absorption = \"%s\"; aerosol_absorption = \"%s\"", Utils::get_first<Float, ScalarFloat>(ozone_absorption[0]), Utils::get_first<Float, ScalarFloat>(aerosol_absorption[0]));
+            return ozone_absorption + aerosol_absorption;
+        }*/
     }
 
     Spectrum get_scattering(const Vector3f &p, const Wavelength &wl) const {
@@ -378,6 +384,11 @@ public:
             return get_rayleigh_scattering(p, wl);
         else
             return get_rayleigh_scattering(p, wl) + get_aerosol_scattering(p, wl);
+        /*else {
+            auto rayleigh_scattering = get_rayleigh_scattering(p, wl), aerosol_scattering = get_aerosol_scattering(p, wl);
+            Log(Info, "rayleigh_scattering = \"%s\"; aerosol_scattering = \"%s\"", Utils::get_first<Float, ScalarFloat>(rayleigh_scattering[0]), Utils::get_first<Float, ScalarFloat>(aerosol_scattering[0]));
+            return rayleigh_scattering + aerosol_scattering;
+        }*/
     }
 
     Spectrum get_rayleigh_scattering(const Vector3f &p, const Wavelength &wl) const {
@@ -422,7 +433,7 @@ public:
     Spectrum get_aerosol_absorption(const Vector3f &p, const Wavelength &wl) const {
         const Float h = get_height(p);
 
-        const Spectrum cross_section = m_AerosolModel->get_absorption(wl) * Float(1e-10); // TODO: Check units
+        const Spectrum cross_section = m_AerosolModel->get_absorption(wl);
 
         const Float density = m_AerosolModel->get_density(h);
 
@@ -444,7 +455,7 @@ public:
 
         //Log(Info, "get_aerosol_scattering = \"%s\"", final_result);
 
-        return final_result * 1e-1; // TODO: Check units
+        return final_result;
     }
 
     /*~AtmosphereMedium() {
