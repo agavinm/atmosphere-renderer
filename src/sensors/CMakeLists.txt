@@ -1,5 +1,6 @@
 set(MTS_PLUGIN_PREFIX "sensors")
 
+add_plugin(fisheye     fisheye.cpp)
 add_plugin(perspective     perspective.cpp)
 add_plugin(radiancemeter   radiancemeter.cpp)
 add_plugin(thinlens        thinlens.cpp)
