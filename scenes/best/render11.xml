@@ -3,7 +3,7 @@
 <scene version="2.2.1">
   <integrator type="volpath">
     <!-- Instantiate a path tracer with a max. path length of 8 -->
-    <integer name="max_depth" value="8"/>
+    <integer name="max_depth" value="64"/>
   </integrator>
 
   <!-- Instantiate a perspective camera with 15 degrees field of view -->
@@ -18,8 +18,8 @@
 
     <!-- Render with 128 samples per pixel using a basic
           independent sampling strategy -->
-    <sampler type="independent">
-      <integer name="sample_count" value="8"/>
+    <sampler type="stratified">
+      <integer name="sample_count" value="64"/>
     </sampler>
 
     <!-- Generate an EXR image at FHD resolution -->
@@ -50,7 +50,7 @@
     <!-- Parametres -->
     <float name="earth_radius" value="6371"/>
     <point name="earth_center" x="0" y="0" z="0"/>
-    <!--<string name="aerosol_model" value="BackgroundAerosol"/>-->
+    <string name="aerosol_model" value="BackgroundAerosol"/>
   </medium>
 
   <!-- Earth -->
