@@ -11,6 +11,7 @@
 //		Institute of Aeronautics and Astronautics.
 //		http://www.spacewx.com/Docs/AIAA-656-598.pdf
 
+#define UNIT_CONVERSION 1e-6f // cross section values are in m^2
 
 template <typename Float, typename UInt32, typename Mask, typename Spectrum, typename Wavelength>
 class GlobalAerosolModel {
@@ -20,33 +21,33 @@ public:
 
 protected:
     explicit GlobalAerosolModel(const std::array<std::array<float, 1001>, 3> &tabulatedValues) {
-        m_max_absorption = tabulatedValues[1][0];
-        m_max_scattering = tabulatedValues[2][0];
+        m_max_absorption = tabulatedValues[1][0] * UNIT_CONVERSION;
+        m_max_scattering = tabulatedValues[2][0] * UNIT_CONVERSION;
         for (size_t wl = 0; wl <= tabulatedValues[0][0] * 100; wl++) {
-            m_absorption[wl] = tabulatedValues[1][0];
-            m_scattering[wl] = tabulatedValues[2][0];
+            m_absorption[wl] = tabulatedValues[1][0] * UNIT_CONVERSION;
+            m_scattering[wl] = tabulatedValues[2][0] * UNIT_CONVERSION;
         }
 
         for (size_t i = 1; i < tabulatedValues[0].size(); i++) {
-            if (tabulatedValues[1][i] > m_max_absorption)
-                m_max_absorption = tabulatedValues[1][i];
-            if (tabulatedValues[2][i] > m_max_scattering)
-                m_max_scattering = tabulatedValues[2][i];
+            if (tabulatedValues[1][i] * UNIT_CONVERSION > m_max_absorption)
+                m_max_absorption = tabulatedValues[1][i] * UNIT_CONVERSION;
+            if (tabulatedValues[2][i] * UNIT_CONVERSION > m_max_scattering)
+                m_max_scattering = tabulatedValues[2][i] * UNIT_CONVERSION;
 
             for (size_t wl = tabulatedValues[0][i - 1] * 100.f + 1; wl < tabulatedValues[0][i] * 100.f; wl++) {
                 m_absorption[wl] = Utils::fast_interpolate<float>(tabulatedValues[0][i - 1] * 100.f,
                                                                   tabulatedValues[0][i] * 100.f,
                                                                   wl,
-                                                                  tabulatedValues[1][i - 1],
-                                                                  tabulatedValues[1][i]);
+                                                                  tabulatedValues[1][i - 1] * UNIT_CONVERSION,
+                                                                  tabulatedValues[1][i] * UNIT_CONVERSION);
                 m_scattering[wl] = Utils::fast_interpolate<float>(tabulatedValues[0][i - 1] * 100.f,
                                                                   tabulatedValues[0][i] * 100.f,
                                                                   wl,
-                                                                  tabulatedValues[2][i - 1],
-                                                                  tabulatedValues[2][i]);
+                                                                  tabulatedValues[2][i - 1] * UNIT_CONVERSION,
+                                                                  tabulatedValues[2][i] * UNIT_CONVERSION);
             }
-            m_absorption[size_t(tabulatedValues[0][i] * 100.f)] = tabulatedValues[1][i];
-            m_scattering[size_t(tabulatedValues[0][i] * 100.f)] = tabulatedValues[2][i];
+            m_absorption[size_t(tabulatedValues[0][i] * 100.f)] = tabulatedValues[1][i] * UNIT_CONVERSION;
+            m_scattering[size_t(tabulatedValues[0][i] * 100.f)] = tabulatedValues[2][i] * UNIT_CONVERSION;
         }
     }
 

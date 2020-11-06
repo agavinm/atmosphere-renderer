@@ -405,13 +405,13 @@ public:
 
         //Log(Info, "get_rayleigh_scattering = \"%s\"", finalResult);
 
-        return finalResult * 1e-1;
+        return finalResult * Float(1e-1f);
     }
 
     Spectrum get_ozone_absorption(const Vector3f &p, const Wavelength &wl) const {
         const Float h = get_height(p);
 
-        const Spectrum cross_section = m_rayleighScattering.get_ozone_cross_section<Float, UInt32, Mask, Spectrum, Wavelength>(wl) * Float(1e-10);
+        const Spectrum cross_section = m_rayleighScattering.get_ozone_cross_section<Float, UInt32, Mask, Spectrum, Wavelength>(wl) * Float(1e-10f);
 
         const auto density = m_standardAtmosphere.get_robson_ozone<Float, UInt32, Mask>(h, m_month);//  get_robson_ozone(h, 1);
 
