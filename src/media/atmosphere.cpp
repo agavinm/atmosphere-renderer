@@ -25,7 +25,7 @@
 #include <mitsuba/render/phase.h>
 #include <random>
 
-#define PRINT_DATA
+//#define PRINT_DATA
 //#define DEBUG_INFO
 
 #ifdef PRINT_DATA
