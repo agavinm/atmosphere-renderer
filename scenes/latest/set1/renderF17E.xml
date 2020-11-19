@@ -1,0 +1,77 @@
+<!-- El Sol está alineado con el eje z y la cámara está 1m por encima del p.n. -->
+
+<scene version="2.2.1">
+  <integrator type="volpath">
+    <!-- Instantiate a path tracer with a max. path length of 128 -->
+    <integer name="max_depth" value="128"/>
+  </integrator>
+
+  <!-- Instantiate a fisheye camera with 180 degrees aperture -->
+  <sensor type="fisheye">
+    <transform name="to_world">
+      <!-- Translate the camera 1 meter above the ground at the north pole -->
+      <translate x="0" y="0" z="6356.767"/>
+    </transform>
+    <float name="aperture" value="180"/>
+
+    <!-- Render with 121 samples per pixel using a stratified sampling strategy -->
+    <sampler type="stratified">
+      <integer name="sample_count" value="121"/>
+    </sampler>
+
+    <!-- Generate an EXR image -->
+    <film type="hdrfilm">
+      <integer name="width" value="320"/>
+      <integer name="height" value="320"/>
+    </film>
+  </sensor>
+  
+  <!-- Distance unit: km -->
+  
+  <!-- Sun -->
+  <shape type="sphere">
+    <float name="radius" value="696340"/>
+    <point name="center" x="0" y="0" z="149597870.700"/> <!-- Distance = 149597870700 meters -->
+    
+    <emitter type="area">
+      <spectrum name="radiance" value="770000"/> <!-- 770000 W per square unit per steradian -->
+    </emitter>
+  </shape>
+  
+  <medium type="atmosphere" id="atmosphere">
+    <!-- Parametres -->
+    <float name="earth_radius" value="6356.766"/>
+    <point name="earth_center" x="0" y="0" z="0"/>
+    <string name="aerosol_model" value="RemoteContinentalAerosol"/>
+    <float name="turbidity" value="10"/>
+  </medium>
+
+  <!-- Earth -->
+  <shape type="sphere">
+    <float name="radius" value="6356.766"/>
+
+    <bsdf type="diffuse">
+      <rgb name="reflectance" value="0, 0, 0"/>
+    </bsdf>
+  </shape>
+  
+  <!-- Earth atmosphere -->
+  <shape type="sphere">
+    <float name="radius" value="6443.77"/>
+    <point name="center" x="0" y="0" z="0"/>
+    
+    <bsdf type="null"/>
+    
+    <ref id="atmosphere" name="interior"/>
+  </shape>
+  
+  <shape type="sphere">
+    <float name="radius" value="0.001"/>
+    <point name="center" x="0" y="0" z="6356.767"/>
+    <boolean name="flip_normals" value="true"/>
+
+    <bsdf type="null"/>
+      
+    <ref id="atmosphere" name="interior"/>
+  </shape>
+</scene>

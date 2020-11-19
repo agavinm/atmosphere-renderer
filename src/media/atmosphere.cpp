@@ -95,7 +95,7 @@ public:
             m_AerosolModel = nullptr;
 
         m_is_homogeneous = false;
-        m_has_spectral_extinction = props.bool_("has_spectral_extinction", true);
+        m_has_spectral_extinction = true;
 
         m_earth_radius = props.float_("earth_radius");
 
@@ -119,25 +119,39 @@ public:
 #ifdef PRINT_DATA
         std::ofstream file;
         file.open("dataZ.txt");
-        file << "%%z\trayleigh_scattering\taerosol_scattering\tozone_absorption\taerosol_absorption\taerosol_density\taerosol_cross_section_scattering\taerosol_cross_section_absorption" << std::endl;
+        file << "%%z\trayleigh_scattering\taerosol_scattering\tozone_absorption\taerosol_absorption\textinction\trayleigh_density\tozone_density_1"
+                "\tozone_density_2\tozone_density_3\tozone_density_4\tozone_density_5\tozone_density_6\tozone_density_7\tozone_density_8\tozone_density_9"
+                "\tozone_density_10\tozone_density_11\tozone_density_12\taerosol_density" << std::endl;
 #endif
 
         for (int i = 0; i < 8699; i++) {
 #ifdef PRINT_DATA
             const Wavelength wl = Wavelength(500.f);
+            const auto z = get_height(p);
             const auto s_m = get_rayleigh_scattering(p, wl);
             const auto s_a = get_aerosol_scattering(p, wl);
             const auto a_m = get_ozone_absorption(p, wl);
             const auto a_a = get_aerosol_absorption(p, wl);
-            file << Utils::get_first<Float, ScalarFloat>(get_height(p)) << '\t' <<
+            file << Utils::get_first<Float, ScalarFloat>(z) << '\t' <<
                     Utils::get_first<Float, ScalarFloat>(s_m[0]) << '\t' <<
                     Utils::get_first<Float, ScalarFloat>(s_a[0]) << '\t' <<
                     Utils::get_first<Float, ScalarFloat>(a_m[0]) << '\t' <<
                     Utils::get_first<Float, ScalarFloat>(a_a[0]) << '\t' <<
                     Utils::get_first<Float, ScalarFloat>((s_m + s_a + a_m + a_a)[0]) << '\t' <<
-                    Utils::get_first<Float, ScalarFloat>(m_AerosolModel->get_density(get_height(p)) * m_turbidity) << '\t' <<
-                    Utils::get_first<Float, ScalarFloat>(m_AerosolModel->get_scattering(wl)[0]) << '\t' <<
-                    Utils::get_first<Float, ScalarFloat>(m_AerosolModel->get_absorption(wl)[0]) << std::endl;
+                    Utils::get_first<Float, ScalarFloat>(m_standardAtmosphere.get_number_density<Float, UInt32, Mask>(z)) * ScalarFloat(1e+9f) << '\t' <<
+                    Utils::get_first<Float, ScalarFloat>(m_standardAtmosphere.get_robson_ozone<Float, UInt32, Mask>(z, 0)) << '\t' <<
+                    Utils::get_first<Float, ScalarFloat>(m_standardAtmosphere.get_robson_ozone<Float, UInt32, Mask>(z, 1)) << '\t' <<
+                    Utils::get_first<Float, ScalarFloat>(m_standardAtmosphere.get_robson_ozone<Float, UInt32, Mask>(z, 2)) << '\t' <<
+                    Utils::get_first<Float, ScalarFloat>(m_standardAtmosphere.get_robson_ozone<Float, UInt32, Mask>(z, 3)) << '\t' <<
+                    Utils::get_first<Float, ScalarFloat>(m_standardAtmosphere.get_robson_ozone<Float, UInt32, Mask>(z, 4)) << '\t' <<
+                    Utils::get_first<Float, ScalarFloat>(m_standardAtmosphere.get_robson_ozone<Float, UInt32, Mask>(z, 5)) << '\t' <<
+                    Utils::get_first<Float, ScalarFloat>(m_standardAtmosphere.get_robson_ozone<Float, UInt32, Mask>(z, 6)) << '\t' <<
+                    Utils::get_first<Float, ScalarFloat>(m_standardAtmosphere.get_robson_ozone<Float, UInt32, Mask>(z, 7)) << '\t' <<
+                    Utils::get_first<Float, ScalarFloat>(m_standardAtmosphere.get_robson_ozone<Float, UInt32, Mask>(z, 8)) << '\t' <<
+                    Utils::get_first<Float, ScalarFloat>(m_standardAtmosphere.get_robson_ozone<Float, UInt32, Mask>(z, 9)) << '\t' <<
+                    Utils::get_first<Float, ScalarFloat>(m_standardAtmosphere.get_robson_ozone<Float, UInt32, Mask>(z, 10)) << '\t' <<
+                    Utils::get_first<Float, ScalarFloat>(m_standardAtmosphere.get_robson_ozone<Float, UInt32, Mask>(z, 11)) << '\t' <<
+                    Utils::get_first<Float, ScalarFloat>(m_AerosolModel->get_density(get_height(p)) * m_turbidity) << std::endl;
 #endif
 
             p = p + ScalarVector3f(0, ScalarFloat(0.01) / m_earth_scale, 0);
@@ -162,15 +176,17 @@ public:
 #ifdef PRINT_DATA
         file.close();
         file.open("dataWl.txt");
-        file << "%%wl\taerosol_cross_section_scattering\taerosol_cross_section_absorption\taerosol_cross_section_extinction" << std::endl;
-        for (int i = 1000; i < 10000; i++) {
+        file << "%%wl\trayleigh_cross_section_scattering\tozone_cross_section_absorption\taerosol_cross_section_scattering"
+                "\taerosol_cross_section_absorption" << std::endl;
+        for (int i = 3600; i < 8300; i++) {
             const Wavelength wl = Wavelength(float(i) / 10.f);
-            const auto aerosol_cross_section_scattering = Utils::get_first<Float, ScalarFloat>(m_AerosolModel->get_scattering(wl)[0]);
-            const auto aerosol_cross_section_absorption = Utils::get_first<Float, ScalarFloat>(m_AerosolModel->get_absorption(wl)[0]);
             file << Utils::get_first<Float, ScalarFloat>(wl[0]) << '\t' <<
-                    aerosol_cross_section_scattering << '\t' <<
-                    aerosol_cross_section_absorption << '\t' <<
-                    aerosol_cross_section_scattering + aerosol_cross_section_absorption << std::endl;
+                    Utils::get_first<Float, ScalarFloat>(m_rayleighScattering.get_cross_section<Float, UInt32, Mask, Spectrum, Wavelength>(wl)[0])
+                            * ScalarFloat(1e-10f) << '\t' <<
+                    Utils::get_first<Float, ScalarFloat>(m_rayleighScattering.get_ozone_cross_section<Float, UInt32, Mask, Spectrum, Wavelength>(wl)[0])
+                            * ScalarFloat(1e-10f) << '\t' <<
+                    Utils::get_first<Float, ScalarFloat>(m_AerosolModel->get_scattering(wl)[0]) << '\t' <<
+                    Utils::get_first<Float, ScalarFloat>(m_AerosolModel->get_absorption(wl)[0]) << std::endl;
         }
         file.close();
 
@@ -191,7 +207,7 @@ public:
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
 
 #ifdef DEBUG_INFO
-        Log(Info, "World vector p \"%s\"", mi.p);
+        Log(Debug, "World vector p \"%s\"", mi.p);
 #endif
 
         const auto p = worldToLocal.transform_affine(mi.p);
@@ -271,7 +287,7 @@ public:
 
 #ifdef DEBUG_INFO
         const ScalarFloat aerosol_scattering_prob = Utils::get_first<Float, ScalarFloat>(aerosol_scattering[0]) / total;
-        Log(Info, "rayleigh_scattering = \"%s\"; aerosol_scattering = \"%s\"; rayleigh_scattering_prob = \"%s\"; aerosol_scattering_prob = \"%s\"", Utils::get_first<Float, ScalarFloat>(rayleigh_scattering[0]), Utils::get_first<Float, ScalarFloat>(aerosol_scattering[0]), rayleigh_scattering_prob, aerosol_scattering_prob);
+        Log(Debug, "rayleigh_scattering = \"%s\"; aerosol_scattering = \"%s\"; rayleigh_scattering_prob = \"%s\"; aerosol_scattering_prob = \"%s\"", Utils::get_first<Float, ScalarFloat>(rayleigh_scattering[0]), Utils::get_first<Float, ScalarFloat>(aerosol_scattering[0]), rayleigh_scattering_prob, aerosol_scattering_prob);
 #endif
 
         // Russian roulette
@@ -290,9 +306,9 @@ public:
         const Float l = norm(p);
         const Float height = (l - m_earth_radius) * m_earth_scale;
 #ifdef DEBUG_INFO
-        Log(Info, "Vector p \"%s\"", p);
-        Log(Info, "Pre-Height of ray collision from the earth center \"%s\".", l);
-        Log(Info, "Height of ray collision from the earth center \"%s\" km.", height);
+        Log(Debug, "Vector p \"%s\"", p);
+        Log(Debug, "Pre-Height of ray collision from the earth center \"%s\".", l);
+        Log(Debug, "Height of ray collision from the earth center \"%s\" km.", height);
 #endif
         return height;
     }
